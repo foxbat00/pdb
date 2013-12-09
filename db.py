@@ -22,6 +22,9 @@ Base.metadata.bind = engine
 
 class Repository(Base):
     __table__ = Table('repository', Base.metadata, autoload=True)
+    def __repr__(self): 
+	return "<Repository id=%d path=%s>" % (self.id, self.path)
+
 
 
 
