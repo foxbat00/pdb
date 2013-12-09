@@ -25,7 +25,7 @@ from util import *
 # logging
 logging.basicConfig(level=logging.DEBUG, format="%(threadName)s:%(thread)d:  %(message)s")
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+#logger.setLevel(logging.INFO)
 
 
 
@@ -60,21 +60,17 @@ def considerFile(scanfile):
 
     repo, path, fname = scanfile.dump()
     
-    fpart,ext = os.path.splitext(fname)
     fullname = modJoin(repo.path,path,fname)
     fsize = os.path.getsize(fullname)
 
     logger.info("considering %s" % fullname)
 
 
-    if not validExt(ext):
-	logger.debug("   not valid extension")
-	return
-
     # shortcut - if this file matches by filename and size, let's avoid md5summing it.
-    f,fi = session.query(File, FileInst).filter(File.size == fsize, FileInst.name == fname\
-	, FileInst.path == path, FileInst.repository == repo.id).first()
-    if f and fi:
+    q = (session.query(File, FileInst).filter(File.size == fsize, FileInst.name == fname \
+	, FileInst.path == path, FileInst.repository == repo.id).first() )
+    if q:
+	(f,fi) = q
 	logger.debug(" shortcutting")
 	f.last_crawled = datetime.datetime.now()  # consider this later
 	fi.last_seen = datetime.datetime.now()
@@ -191,6 +187,10 @@ class FileLoader(threading.Thread):
 	    # recurse
 	    for dirpath, dirname, files in os.walk(r.path,**walkargs):
 		for f in files:
+		    fpart,ext = os.path.splitext(fname)
+		    if not validExt(ext):
+			logger.debug("   not valid extension")
+			break
 		    sf = ScanFile(r,os.path.relpath(dirpath,r.path),f)
 		    self.addFile(sf)
 	    self.repoq.task_done()
