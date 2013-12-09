@@ -23,8 +23,14 @@ from db import *
 from util import *
 
 # logging
-logging.basicConfig(level=logging.DEBUG, format="%(threadName)s:%(thread)d:  %(message)s")
+format = "%(threadName)s:%(thread)d:  %(message)s"
+logging.basicConfig(level=logging.DEBUG, format=format)
 logger = logging.getLogger(__name__)
+logoutput = logging.FileHandler(logfile, mode='w')
+logoutput.setLevel(logging.DEBUG)
+logoutput.setFormatter(logging.Formatter(format))
+logger.addHandler(logoutput)
+
 #logger.setLevel(logging.INFO)
 
 
