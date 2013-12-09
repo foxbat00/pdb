@@ -11,6 +11,17 @@ import dateutil.parser as dup
 import hashlib
 
 
+
+
+#################################################################
+#
+# No longer being developed - see multithreaded crawler
+#
+#################################################################
+
+
+
+
 # 
 logfile = 'logs/log.txt'
 validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx", ".m4v", ".mkv"]
