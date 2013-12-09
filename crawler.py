@@ -25,13 +25,13 @@ def log(msg):
     print msg
     logf.write("%s\n" % msg)
 
+
 log("##### starting new file crawl at %s" % datetime.datetime.now())
 
 
+# avoid '.' winding up in assembled paths
 def modJoin(*paths):
     return os.path.join(*[x for x in paths if x != '.'])
-
-
 
 
 # enable control of recursive crawl
@@ -68,9 +68,13 @@ def updateFileInst(fi,r):
 
 
 # consider a particular file
-def considerFile(repo,path,fpart):
-    fname,ext = os.path.splitext(fpart)
-    fullname = modJoin(repo.path,path,fpart)
+
+def considerFile(repo,path,fname):
+
+    fpart,ext = os.path.splitext(fname)
+    fullname = modJoin(repo.path,path,fname)
+    fsize = os.path.getsize(fullname)
+
     if bDebug:
 	log("consider %s" % fullname)
 
@@ -79,8 +83,20 @@ def considerFile(repo,path,fpart):
 	log("   not valid extension")
 	return
 
+    # shortcut - if this file matches by filename and size, let's avoid md5summing it.
+    f,fi = session.query(File, FileInst).filter(File.size == fsize, FileInst.name == fname\
+	, FileInst.path == path, FileInst.repository == repo.id).first()
+    if f and fi:
+	log(" shortcutting")
+	f.last_crawled = datetime.datetime.now()
+	fi.last_seen = datetime.datetime.now()
+	fi.deleted_on = None
+	return
+
+    
+	
+
     log (" checksumming...")
-    fsize = os.path.getsize(fullname)
     fhash = md5sum(fullname)
 
     # see if the size matches any recorded file
@@ -92,7 +108,7 @@ def considerFile(repo,path,fpart):
 	    log("   no existing file matches")
 
 	f = File(fsize,fhash,fname)
-	fi = FileInst(fpart, path, repo, f)
+	fi = FileInst(fname, path, repo, f)
 	session.add(f)
 	session.add(fi)
 
@@ -101,6 +117,11 @@ def considerFile(repo,path,fpart):
     
     else:
 	
+	# mark as crawled
+	f.last_crawled = datetime.datetime.now()
+	session.add(f)
+	session.commit()
+
 	# get corresponding file_insts
 	fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file == existing.id).all()
 	if bDebug:
@@ -119,7 +140,7 @@ def considerFile(repo,path,fpart):
 		if bDebug:
 		    log("      reactivating old instance")
 		fi,r = fis
-		fi.name = fpart
+		fi.name = fname
 		fi.path = path
 		fi.repository = repo.id
 		last_seen = datetime.datetime.now()
@@ -132,7 +153,7 @@ def considerFile(repo,path,fpart):
 	    else:
 		if bDebug:
 		    log("      creating new instance")
-		fi = FileInst(fpart,path,repo,existing)
+		fi = FileInst(fname,path,repo,existing)
 		session.add(fi)
 		session.commit()
 		return
