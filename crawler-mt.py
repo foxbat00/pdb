@@ -25,6 +25,7 @@ from util import *
 # logging
 logging.basicConfig(level=logging.DEBUG, format="%(threadName)s:%(thread)d:  %(message)s")
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 
@@ -63,7 +64,7 @@ def considerFile(scanfile):
     fullname = modJoin(repo.path,path,fname)
     fsize = os.path.getsize(fullname)
 
-    logger.debug("considering %s" % fullname)
+    logger.info("considering %s" % fullname)
 
 
     if not validExt(ext):
@@ -181,7 +182,7 @@ class FileLoader(threading.Thread):
 	while True:
 	    r = self.repoq.get()
 	    #session.merge(r, load=False)
-	    logger.debug("Examining repo: %s" % r)
+	    logger.info("Examining repo: %s" % r)
 	    
 	    if not os.path.isdir(r.path):
 		logger.error("Repository not found: %s" % r.path)
@@ -268,18 +269,10 @@ for i in range (threadMax if len(rs) > threadMax else len(rs)):
     t.daemon = True  # the prog ends when no alive non-daemons are left
     t.start()
 
-logger.debug("adding files to queue")
 
 for r in rs:
     logger.debug("enqueuing repository %s" % r)
     repoq.put(r)
-
-repoq.join() # wait/ensure for everything to be added...
-# ideally, I'd like to start consuming before I'm done producing, but not sure how without risking queue emptiness
-# and or having to manually signal the end
-
-logger.debug(" %d files in fileq" % fileq.qsize())
-logger.debug("beginning threaded scan of files")
 
 for i in range (threadMax):
     t  = FileScanner(fileq)
@@ -287,10 +280,13 @@ for i in range (threadMax):
     t.start()
 
 fileq.join()
+logger.info(" --done loadine files    -- complete %s" % datetime.datetime.now())
+repoq.join() # wait/ensure for everything to be added...
+logger.info(" --done scanning files    -- complete %s" % datetime.datetime.now())
 
 
 
-logger.debug("###### crawl for new files -- complete %s #######" % datetime.datetime.now())
+logger.info("###### crawl for new files -- complete %s #######" % datetime.datetime.now())
 
 # check file_instances that we haven't seen in a while
 for fi,r in session.query(FileInst,Repository).join(Repository).filter(FileInst.deleted_on == None)\
@@ -306,7 +302,7 @@ for i in range (threadMax):
 
 fileq.join()
 
-logger.debug("###### crawl of files not recently seen -- complete %s #######" % datetime.datetime.now())
+logger.info("###### crawl of files not recently seen -- complete %s #######" % datetime.datetime.now())
 
 
 session.close()
