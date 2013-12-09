@@ -6,10 +6,9 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 import datetime
-import re
-import sys, os
-import dateutil.parser as dup
-import hashlib
+import re, sys, os
+
+from util import *
 
 
 
@@ -50,15 +49,14 @@ class FileInst(Base):
 	self.path = path
 	self.Repo = repo
 	self.last_seen = datetime.datetime.now()
-	self.deleted = False
 	self.marked_delete = False
 	self.processed = False
 	self.F = filerec
 
-	
-
-	
-#    def __repr__(self): 
-#	return "<Edit id=%d uid=%d rid=%d in=%s out=%s>" % (self.id, self.uid, self.rid, self.date_in, self.            date_out)
+    def __repr__(self): 
+	return "<FileInst id=%d name=\"%s\", deleted=%s>" % (self.id, modJoin(self.Repo.path,self.path,self.name)\
+	    , 'F' if not self.deleted_on else self.deleted_on)
+    def getFullName(self):
+	return modJoin(self.Repo.path,self.path,self.name)
 
 

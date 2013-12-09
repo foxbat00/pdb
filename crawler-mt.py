@@ -5,7 +5,6 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 import datetime
 import dateutil.parser as dup
 import re, sys, os
-import hashlib
 import logging, threading, Queue
 
 
@@ -21,6 +20,7 @@ repoq = Queue.Queue()
 
 # set up db
 from db import *
+from util import *
 
 # logging
 logging.basicConfig(level=logging.DEBUG, format="%(threadName)s:%(thread)d:  %(message)s")
@@ -37,23 +37,8 @@ logger.info("##### starting new file crawl at %s" % datetime.datetime.now())
 #
 #############################################################
 
-
-# avoid '.' winding up in assembled paths
-def modJoin(*paths):
-    return os.path.join(*[x for x in paths if x != '.'])
-
-
-
 def validExt(ext):
     return True if ext.lower() in validExts else False
-
-def md5sum(file):
-    md5 = hashlib.md5()
-    with open(file,'rb') as f:
-	for chunk in iter(lambda: f.read(128*md5.block_size),b''):
-	    md5.update(chunk)
-    return md5.hexdigest()
-
 
 def updateFileInst(fi,r):
     if not os.path.isfile(modJoin(r.path,fi.path,fi.name)):
