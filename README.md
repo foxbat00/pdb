@@ -16,3 +16,9 @@ The system comprises:
 During a crawl, FileInsts that are no longer present are markded deleted, but the FileInst and File record remain to detect future duplicates.
 
 The resultant database will allow searches across multiple libraries on different volumes, allow easy detection of potential duplicate files across those volumes, and serve as a base upon which to build a richer metadata layer.
+
+
+crawler-mt.py:  the crawler
+db.py:          holds db connections and table definitions
+testdb.py:      loads the db and leaves you with interactive prompt to run queries and debug
+psearch.py:     search filenames across db
