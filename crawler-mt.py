@@ -75,6 +75,10 @@ def considerFile(scanfile):
 	f.last_crawled = datetime.datetime.now()  # consider this later
 	fi.last_seen = datetime.datetime.now()
 	fi.deleted_on = None
+	session.add_all(f,fi)
+	session.commit()
+	session.expunge(f)
+	session.expunge(fi)
 	return
 
 
@@ -92,15 +96,16 @@ def considerFile(scanfile):
 	fi = FileInst(fname, path, repo, f)
 	session.add(f)
 	session.add(fi)
-
 	session.commit()
+	session.expunge(f)
+	session.expunge(fi)
 	return
     
     else:
 	
 	# mark as crawled
-	f.last_crawled = datetime.datetime.now()
-	session.add(f)
+	existing.last_crawled = datetime.datetime.now()
+	session.add(existing)
 	session.commit()
 
 	# get corresponding file_insts
@@ -122,10 +127,12 @@ def considerFile(scanfile):
 		fi.name = fname
 		fi.path = path
 		fi.repository = repo.id
-		last_seen = datetime.datetime.now()
+		fi.last_seen = datetime.datetime.now()
 		deleted_on = None
 		session.add(fi)
 		session.commit(fi)
+		session.expunge(fi)
+		session.expunge(existing)
 		return
 
 	# otherwise, create a new file instance
@@ -134,6 +141,7 @@ def considerFile(scanfile):
 		fi = FileInst(fname,path,repo,existing)
 		session.add(fi)
 		session.commit()
+		session.expunge(fi)
 		return
 		    
 			
@@ -187,7 +195,7 @@ class FileLoader(threading.Thread):
 	    # recurse
 	    for dirpath, dirname, files in os.walk(r.path,**walkargs):
 		for f in files:
-		    fpart,ext = os.path.splitext(fname)
+		    fpart,ext = os.path.splitext(f)
 		    if not validExt(ext):
 			logger.debug("   not valid extension")
 			break
@@ -195,18 +203,6 @@ class FileLoader(threading.Thread):
 		    self.addFile(sf)
 	    self.repoq.task_done()
 	    
-    """
-    def walklevel(dir, level=1, walkargs=None):
-	dir = dir.rstrip(os.path.sep)
-	num_sep = dir.count(os.path.sep)
-	for root,dirs,files in os.walk(dir,**walkargs):
-	    yield root, dirs, files
-	    num_sep_this = root.count(os.path.sep)
-	    if num_sep + level <=num_sep_this:
-		del dirs[:]
-    """
-
-
 
 
 class FileScanner(threading.Thread):
