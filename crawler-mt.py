@@ -5,7 +5,9 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 import datetime
 import dateutil.parser as dup
 import re, sys, os
-import logging, threading, Queue
+from threading import Thread
+from Queue import Queue
+import logging 
 
 
 # globals
@@ -15,15 +17,16 @@ threadMax = 4
 
 
 # threading queues
-fileq = Queue.Queue()
-repoq = Queue.Queue()
+fileq = Queue()
+repoq = Queue()
 
 # set up db
 from db import *
+from models import *
 from util import *
 
 # logging
-format = "%(threadName)s:%(thread)d:  %(message)s"
+format = "%(levelname)s (%(threadName)s): %(message)s"
 logging.basicConfig(level=logging.DEBUG, format=format)
 logger = logging.getLogger(__name__)
 logoutput = logging.FileHandler(logfile, mode='w')
@@ -52,7 +55,6 @@ def updateFileInst(fi,r):
 	fi.deleted_on = datetime.datetime.now()
     else:
 	fi.last_seen = datetime.datetime.now()
-    session.add(fi)
     session.commit()
     return fi,r
 
@@ -73,15 +75,14 @@ def considerFile(scanfile):
 
 
     # shortcut - if this file matches by filename and size, let's avoid md5summing it.
-    q = (session.query(File, FileInst).filter(File.size == fsize, FileInst.name == fname \
+    q = (session.query(FileInst,File).join(File).filter(File.size == fsize, FileInst.name == fname \
 	, FileInst.path == path, FileInst.repository == repo.id).first() )
     if q:
-	(f,fi) = q
+	(fi,f) = q
 	logger.debug(" shortcutting")
 	f.last_crawled = datetime.datetime.now()  # consider this later
 	fi.last_seen = datetime.datetime.now()
 	fi.deleted_on = None
-	session.add_all(f,fi)
 	session.commit()
 	session.expunge(f)
 	session.expunge(fi)
@@ -111,21 +112,22 @@ def considerFile(scanfile):
 	
 	# mark as crawled
 	existing.last_crawled = datetime.datetime.now()
-	session.add(existing)
 	session.commit()
 
 	# get corresponding file_insts
-	fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file == existing.id).all()
+	q = session.query(FileInst,Repository).join(Repository).filter(FileInst.file == existing.id).all()
 	logger.debug("   found file and %d existing instances" % int(len(fis)/2) )
 
 
 	# scan for deleted, mark as seen the rest
-	for fi,r in fis:
+	for q in fis:
+	    (fi,r) = q
 	    updateFileInst(fi,r)
 	    
 
 	# if an instance has been deleted recently, let's reactivate it 
-	for fi,r in fis:
+	for q in fis:
+	    (fi,r) = q
 	    d = fi.deleted_on
 	    if d and d > datetime.datetime.now() - datetime.timedelta(weeks=1):
 		logdebug("      reactivating old instance")
@@ -135,8 +137,7 @@ def considerFile(scanfile):
 		fi.repository = repo.id
 		fi.last_seen = datetime.datetime.now()
 		deleted_on = None
-		session.add(fi)
-		session.commit(fi)
+		session.commit()
 		session.expunge(fi)
 		session.expunge(existing)
 		return
@@ -170,81 +171,61 @@ class ScanFile():
 
 
 
-class FileLoader(threading.Thread):
 
-    def __init__(self,repoq,fileq):
-	threading.Thread.__init__(self)
-	self.repoq = repoq
-	self.fileq = fileq
+
+
+
+def FileLoader(repoq,fileq):
 
     def scanErro(e):
 	raise e
 
-    def addFile(self,sf):
-	#session.expunge(r)
-	logger.debug("adding %s to fileq" % sf)
-	self.fileq.put(sf)
-
-    # not used but could enable limiting recursive crawl to particular depth
-
-    def run(self):
-	#while not self.repoq.empty():
-	while True:
-	    r = self.repoq.get()
-	    #session.merge(r, load=False)
-	    logger.info("Examining repo: %s" % r)
-	    
-	    if not os.path.isdir(r.path):
-		logger.error("Repository not found: %s" % r.path)
-		break
-	    walkargs = {'followlinks':True, 'onerror':'self.scanError'}
-	    # recurse
-	    for dirpath, dirname, files in os.walk(r.path,**walkargs):
-		for f in files:
-		    fpart,ext = os.path.splitext(f)
-		    if not validExt(ext):
-			logger.debug("   not valid extension")
-			break
-		    sf = ScanFile(r,os.path.relpath(dirpath,r.path),f)
-		    self.addFile(sf)
-	    self.repoq.task_done()
+    logger.debug("fileLoader running")
+    #while not self.repoq.empty():
+    while True:
+	r = repoq.get()
+	#session.merge(r, load=False) # not needed bc this comes from main thread???
+	logger.info("Examining repo: %s" % r)
+	
+	if not os.path.isdir(r.path):
+	    logger.error("Repository not found: %s" % r.path)
+	    break
+	walkargs = {'followlinks':True, 'onerror':'self.scanError'}
+	# recurse
+	for dirpath, dirname, files in os.walk(r.path,**walkargs):
+	    for f in files:
+		fpart,ext = os.path.splitext(f)
+		if not validExt(ext):
+		    logger.debug("   not valid extension")
+		    break
+		sf = ScanFile(r,os.path.relpath(dirpath,r.path),f)
+		logger.debug("adding %s to fileq" % sf)
+		fileq.put(sf)
+	repoq.task_done()
 	    
 
 
-class FileScanner(threading.Thread):
-    
-    def __init__(self,fileq):
-	threading.Thread.__init__(self)
-	self.fileq = fileq
-
-
-    def run(self):
+def FileScanner (fileq):
 	logger.debug("fileScanner running")
 	#while not self.fileq.empty():
 	while True:
-	    sf = self.fileq.get()
+	    sf = fileq.get()
 	    session.merge(r,load = False)
 	    considerFile(sf)
-	    self.fileq.task_done()
+	    fileq.task_done()
 
 
 
 
-class FileUpdater(threading.Thread):
-    
-    def __init__(self,fileq):
-	threading.Thread.__init__(self)
-	self.fileq = fileq
-
-
-    def run(self):
-	while not self.fileq.empty():
-	    (fi,r) = self.fileq.get()
-	    session.merge(fi, load=False)
-	    session.merge(r, load = False)
-	    logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
-	    updateFileInst(fi,r)
-	    self.fileq.task_done()
+def FileUpdater(fileq):
+    logger.debug("fileUpdater running")
+    while True:
+	(fi,r) = fileq.get()
+	session.merge(fi, load=False)
+	session.merge(r, load = False)
+	logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
+	updateFileInst(fi,r)
+	fileq.task_done()
 
 
 
@@ -267,7 +248,7 @@ rs = session.query(Repository).all()
 logger.debug("launching FileLoaders")
 
 for i in range (threadMax if len(rs) > threadMax else len(rs)):
-    t = FileLoader(repoq,fileq)
+    t = Thread(target=FileLoader, args=(repoq,fileq))
     t.daemon = True  # the prog ends when no alive non-daemons are left
     t.start()
 
@@ -277,7 +258,7 @@ for r in rs:
     repoq.put(r)
 
 for i in range (threadMax):
-    t  = FileScanner(fileq)
+    t  = Thread(target=FileScanner, args=(fileq,)) # requires a tuple
     t.daemon = True  # the prog ends when no alive non-daemons are left
     t.start()
 
@@ -291,19 +272,20 @@ logger.info(" --done scanning files    -- complete %s" % datetime.datetime.now()
 logger.info("###### crawl for new files -- complete %s #######" % datetime.datetime.now())
 
 # check file_instances that we haven't seen in a while
-for fi,r in session.query(FileInst,Repository).join(Repository).filter(FileInst.deleted_on == None)\
+for q in session.query(FileInst,Repository).join(Repository).filter(FileInst.deleted_on == None)\
 	.filter(FileInst.last_seen < datetime.datetime.now() - datetime.timedelta(days=3)).yield_per(300):
+    (fi,r) = q
     session.expunge(fi)
     session.expunge(r)
-    fileq.put( (fi,r) )
+    fileq.put(q)
 
 
 for i in range (threadMax):
-    t = FileUpdater(fileq)
+    t = Thread(target=FileUpdater,args=(fileq,))  # requires a tuple
+    t.daemon = True  # the prog ends when no alive non-daemons are left
     t.start()
 
 fileq.join()
-
 logger.info("###### crawl of files not recently seen -- complete %s #######" % datetime.datetime.now())
 
 

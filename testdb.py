@@ -9,6 +9,7 @@ import re, sys, os
 import dateutil.parser as dup
 
 from db import *
+from models import *
 from util import *
 
 
