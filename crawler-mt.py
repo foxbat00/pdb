@@ -99,12 +99,9 @@ def considerFile(scanfile):
 	
 	logger.debug("   no existing file matches")
 
-	f = File(fsize,fhash,fname)
-	fi = FileInst(fname, path, repo, f)
-	session.add(f)
+	fi = FileInst(fname, path, repo, File(fsize,fhash,fname))
 	session.add(fi)
 	session.commit()
-	session.expunge(f)
 	session.expunge(fi)
 	return
     
@@ -249,7 +246,6 @@ logger.debug("launching FileLoaders")
 
 for i in range (threadMax if len(rs) > threadMax else len(rs)):
     t = Thread(target=FileLoader, args=(repoq,fileq))
-    t.daemon = True  # the prog ends when no alive non-daemons are left
     t.start()
 
 
@@ -259,13 +255,12 @@ for r in rs:
 
 for i in range (threadMax):
     t  = Thread(target=FileScanner, args=(fileq,)) # requires a tuple
-    t.daemon = True  # the prog ends when no alive non-daemons are left
     t.start()
 
 fileq.join()
-logger.info(" --done loadine files    -- complete %s" % datetime.datetime.now())
+logger.info(" --done building filelist and starting threads -- complete %s" % datetime.datetime.now())
 repoq.join() # wait/ensure for everything to be added...
-logger.info(" --done scanning files    -- complete %s" % datetime.datetime.now())
+logger.info(" --done loading files into queue -- complete %s" % datetime.datetime.now())
 
 
 
@@ -282,7 +277,7 @@ for q in session.query(FileInst,Repository).join(Repository).filter(FileInst.del
 
 for i in range (threadMax):
     t = Thread(target=FileUpdater,args=(fileq,))  # requires a tuple
-    t.daemon = True  # the prog ends when no alive non-daemons are left
+    #t.daemon = True  # the prog ends when no alive non-daemons are left
     t.start()
 
 fileq.join()
