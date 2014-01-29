@@ -10,7 +10,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 engine = create_engine('postgresql://tgpl@localhost:5432/pdb')
 engine.echo = False
-session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
+session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
 Base = declarative_base()
 Base.metadata.bind = engine
 

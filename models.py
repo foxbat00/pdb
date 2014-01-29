@@ -38,14 +38,15 @@ class FileInst(Base):
     F = relationship('File',backref='FileInsts')
 
 
-    def __init__(self, name, path, repo,filerec):
+    def __init__(self, name, path, repo, file):
 	self.name = name
 	self.path = path
 	self.Repo = repo
 	self.last_seen = datetime.datetime.now()
 	self.marked_delete = False
 	self.processed = False
-	self.F = filerec
+	self.F = file
+	#self.file = fileid
 
     def __repr__(self): 
 	return "<FileInst id=%d name=\"%s\", deleted=%s>" % (self.id, modJoin(self.Repo.path,self.path,self.name)\

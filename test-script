@@ -1,0 +1,164 @@
+#!/usr/bin/env python
+from sqlalchemy import *
+import sqlalchemy.dialects as postgres
+from sqlalchemy.orm import scoped_session, sessionmaker
+import datetime
+import dateutil.parser as dup
+import re, sys, os
+from threading import Thread
+from Queue import Queue
+import logging 
+
+
+# globals
+logfile = 'logs/log.txt'
+threadMax = 4
+
+
+# threading queues
+fileq = Queue()
+repoq = Queue()
+updateq = Queue()
+
+# set up db
+from db import *
+from models import *
+from util import *
+
+
+# consider a particular file
+
+    # repo is an ORM object, path and fname are strings
+
+def considerFile(scanfile):
+
+    # see if the size matches any recorded file
+    existing = session.query(File).filter(File.size==fsize).filter(File.md5hash==fhash).first()
+
+    if not existing:
+	
+	logger.debug("   no existing file matches")
+
+	f = File(fsize,fhash,fname)
+	session.add(f)
+	session.flush()
+	fi = FileInst(fname, path, repo, f)
+	session.add(fi)
+	session.commit()
+	session.expunge(fi)
+	session.expunge(f)
+	return
+    
+    else:
+	
+		    
+			
+
+def FileLoader(repoq,fileq):
+
+    def scanErro(e):
+	raise e
+
+    logger.debug("fileLoader running")
+    #while not self.repoq.empty():
+    while True:
+	r = repoq.get()
+
+		sf = ScanFile(r,os.path.relpath(dirpath,r.path),f)
+		fileq.put(sf)
+	repoq.task_done()
+	    
+
+
+def FileScanner (fileq):
+	logger.debug("fileScanner running")
+	#while not self.fileq.empty():
+	while True:
+	    sf = fileq.get()
+	    #session.merge(r,load = False)
+	    session.merge(r,load = True)
+	    considerFile(sf)
+	    fileq.task_done()
+
+
+
+
+def FileUpdater(updateq):
+    logger.debug("fileUpdater running")
+    while True:
+	(fi,r) = updateq.get()
+	session.merge(fi, load=False)
+	session.merge(r, load = False)
+	logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
+	updateFileInst(fi,r)
+	updateq.task_done()
+
+
+
+
+
+
+#############################################################
+#
+#  main
+#
+#############################################################
+
+# load repositories
+rs = session.query(Repository).all()
+
+
+# walk the files in each repository
+
+
+
+
+logger.debug("adding repos")
+for r in rs:
+    logger.debug("...enqueuing repository %s" % r)
+    repoq.put(r)
+
+logger.debug("launching FileLoaders")
+for i in range (threadMax if len(rs) > threadMax else len(rs)):
+    t = Thread(target=FileLoader, args=(repoq,fileq))
+    t.daemon = True  # the prog ends when no alive non-daemons are left
+    t.start()
+
+
+logger.debug("launching FileScanners")
+for i in range (threadMax):
+    t  = Thread(target=FileScanner, args=(fileq,)) # requires a tuple
+    t.daemon = True  # the prog ends when no alive non-daemons are left
+    t.start()
+
+repoq.join() # wait/ensure for everything to be added...
+logger.info(" --done enqueuing files (FileLoaders)-- complete %s" % datetime.datetime.now())
+fileq.join()
+logger.info(" --done building filelist (FileScanners) -- complete %s" % datetime.datetime.now())
+
+
+
+logger.info("###### crawl for new files -- complete %s #######" % datetime.datetime.now())
+
+# check file_instances that we haven't seen in a while
+for q in session.query(FileInst,Repository).join(Repository).filter(FileInst.deleted_on == None)\
+	.filter(FileInst.last_seen < datetime.datetime.now() - datetime.timedelta(days=3)).yield_per(300):
+    (fi,r) = q
+    session.expunge(fi)
+    session.expunge(r)
+    updateq.put(q)
+
+
+for i in range (threadMax):
+    t = Thread(target=FileUpdater,args=(fileq,))  # requires a tuple
+    #t.daemon = True  # the prog ends when no alive non-daemons are left
+    t.start()
+
+updateq.join()
+logger.info("###### crawl of files not recently seen -- complete %s #######" % datetime.datetime.now())
+
+
+session.close()
+
+
+
