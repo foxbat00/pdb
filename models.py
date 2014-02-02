@@ -30,6 +30,11 @@ class File(Base):
 	self.size = fsize
 	self.last_crawled = datetime.datetime.now()
 
+    def getActiveInst(self):
+	return session.query(FileInst).filter(FileInst.deleted_on == None, FileInst.marked_delete != True)\
+	    .filter(FileInst.file == self.id).first()
+	
+
 
 
 class FileInst(Base):
@@ -51,6 +56,7 @@ class FileInst(Base):
     def __repr__(self): 
 	return "<FileInst id=%d name=\"%s\", deleted=%s>" % (self.id, modJoin(self.Repo.path,self.path,self.name)\
 	    , 'F' if not self.deleted_on else self.deleted_on)
+
     def getFullName(self):
 	return modJoin(self.Repo.path,self.path,self.name)
 

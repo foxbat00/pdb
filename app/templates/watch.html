@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %} Watch PDB {% endblock %}
+<script type="text/javascript" src="/static/pdb.js"></script>
+{% block content %}
+    <div class=main>
+    <div class="span8" id="playerContainer">
+	<script type="text/javascript"> window.onload = function() { start({{stream}}) } ></script>
+	<embed type="application/x-vlc-plugin" pluginspage="http://www.videolan.org"
+	    id="vlcPlayer"
+	    toolbar ="false"
+	    autoplay="yes" loop="yes" width=800 height=600
+	    target="" style="margin-bottom: 40px;" 
+	/>
+    </div>
+    <div class=controls>
+	<a href="javascript:;" onclick='document.vlc.pause()'>Pause</a> | 
+	<a href="javascript:;" onclick='document.vlc.stop()'>Stop</a> | 
+	<a href="javascript:;" onclick='document.vlc.fullscreen()'>Fullscreen</a>
+
+    </div>
+{% endblock %}
