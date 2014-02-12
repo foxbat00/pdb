@@ -11,6 +11,7 @@ from util import *
 from db import *
 
 
+# REQUIRES sqlalchemy >=0.9.2 to have tsvector support
 
 
 class Repository(Base):
