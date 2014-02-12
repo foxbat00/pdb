@@ -17,7 +17,7 @@ CREATE TABLE repository (
 CREATE TABLE file (
     id			serial		PRIMARY KEY,
     md5hash		varchar(200)	NOT NULL,
-    tsv			tsvector	,
+    --tsv			tsvector	,
     wordbag		text		NOT NULL DEFAULT '',
     display_name	varchar(200)	NOT NULL,
     size		bigint		NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE tag (
 
 CREATE TABLE star (
     id			serial		PRIMARY KEY,
-    name		varchar(40)	NOT NULL,
+    name		text		NOT NULL,
     gender		varchar(3)	NOT NULL
 );
 
@@ -93,17 +93,17 @@ CREATE TABLE scene_star (
 
 CREATE TABLE alias (
     id			serial		PRIMARY KEY,
-    alias		varchar(200)	NOT NULL
+    name		text		NOT NULL
 );
 
 CREATE TABLE label (
     id			serial		PRIMARY KEY,
-    label		varchar(200)	NOT NULL
+    name		name		NOT NULL
 );
 
 CREATE TABLE series (
     id			serial		PRIMARY KEY,
-    series		varchar(200)	NOT NULL
+    name		text		NOT NULL
 );
 
 CREATE TABLE alias_star (
@@ -199,28 +199,56 @@ CREATE AGGREGATE tsvector_agg (
   INITCOND = ''
 );
 
+/*  --REMOVED
+CREATE FUNCTION update_file_tsv () RETURNS TRIGGER AS $A$
+    DECLARE 
+	words text;
+    BEGIN
+    EXECUTE $B$
+	SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
+	    || ' ' || OLD.wordbag 
+	    FROM file, file_inst WHERE file_inst.file = file.id 
+    $B$ INTO words;
+    NEW.tsv = to_tsvector(words);
+    return NEW;
+    END;
+$A$ LANGUAGE plpgsql;
+*/
 
-CREATE FUNCTION update_file_tsv () RETURNS VOID AS $$
-    UPDDATE file SET tsv = to_tsvector(s.tsv)
-    FROM (
-	SELECT file.id, STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
-	    || file.wordbag tsv
-	FROM file
-	INNER JOIN file_inst ON(file_inst.file = file.id)
-	GROUP BY file.id
-    ) s WHERE file.id = s.id
-$$  LANGUAGE sql;
+CREATE FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
+    DECLARE 
+	words text;
+    BEGIN
+    EXECUTE $B$
+	SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
+	    || ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || OLD.wordbag
+	    FROM scene, scene_file, file, file_inst
+	    WHERE scene.id = scene_file.scene_id 
+	    AND file.id = scene_file.file_id
+	    AND file_inst.file = file.id
+    $B$  into words;
+    NEW.tsv = to_tsvector(words);
+    return NEW;
+    END;
+$A$ LANGUAGE plpgsql;
 
 
-CREATE FUNCTION update_scene_tsv () AS $$
-    UPDDATE scene SET tsv = to_tsvector(s.tsv)
-    FROM (
-	SELECT scene.id, TSVECTOR_AGG(file.tsv) || scene.wordbag tsv
-	FROM file
-	INNER JOIN scene_file ON(scene_file.scene_id = scene.id)
-	INNER JOIN file ON(scene_file.file_id = file.id)
-	GROUP BY scene.id
-    ) s WHERE scene.id = s.id
-$$  LANGUAGE sql;
+
+
+CREATE TRIGGER update_scene_tsv AFTER 
+    INSERT OR UPDATE ON scene 
+FOR EACH ROW EXECUTE PROCEDURE update_scene_tsv();
+
+CREATE TRIGGER update_scene_tsv AFTER 
+    INSERT OR UPDATE ON scene_file
+FOR EACH ROW EXECUTE PROCEDURE update_scene_tsv();
+
+CREATE TRIGGER update_scene_tsv AFTER 
+    INSERT OR UPDATE OF wordbag ON file
+FOR EACH ROW EXECUTE PROCEDURE update_scene_tsv();
+
+CREATE TRIGGER update_scene_tsv AFTER 
+    INSERT OR UPDATE OF file ON file_inst
+FOR EACH ROW EXECUTE PROCEDURE update_scene_tsv();
 
 
