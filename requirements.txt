@@ -1,3 +1,9 @@
 SQLAlchemy>=0.9.2
 psycopg2>=2.5.2
 python-dateutil
+Flask==0.10.1
+pycco
+Flask-WTF==0.8.4
+Jinja2==2.7.1
+WTForms==1.0.4
+twisted==13.2.0

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {% block head %}
+    <title>PDB{% block title %}{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+    <meta charset="utf-8">
+
+    <!-- <link href="http://twitter.github.com/bootstrap/assets/css/bootstrap.css" rel="stylesheet"> -->
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="http://bootswatch.com/cosmo/bootstrap.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.min.css" rel="stylesheet">
+    <link href="{{ url_for('static',filename='pdb.css') }}" rel="stylesheet" type="text/css">
+    </style>
+
+    <link rel="shortcut icon" href="{{ url_for('static', filename='ico/favicon.ico') }}">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0-rc1/js/bootstrap.min.js"></script>
+    {% endblock %}
+  </head>
+
+  <body>
+
+    {% block navbar %}
+    <div class="navbar navbar-fixed-top">
+      <div class="container">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/">PDB</a>
+        <div class="nav-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/watch/">Watch</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+        <div class="nav-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/control/">Control</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+        <div class="nav-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/search/">Search</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+    {% endblock %}
+
+    <div class="container page">
+        {% for message in get_flashed_messages() %}
+          <div class="flashed-message alert alert-success">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            {{message}}
+            <script>
+              $(".flashed-message").alert();
+            </script>
+          </div>
+        {% endfor %}
+        <div class="content">
+          {% block content %}
+          {% endblock %}
+        </div>
+
+        <hr>
+
+        {% block footer %}
+        <footer class="footer">
+            <p>PDB</p>
+        </footer>
+        {% endblock %}
+
+    </div>
+    {% block js_footer %}
+      <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap.js"></script>
+    {% endblock %}
+  </body>
+</html>
