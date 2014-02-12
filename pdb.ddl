@@ -17,7 +17,7 @@ CREATE TABLE repository (
 CREATE TABLE file (
     id			serial		PRIMARY KEY,
     md5hash		varchar(200)	NOT NULL,
-    tokens		tsvector	,
+    tsv			tsvector	,
     wordbag		text		NOT NULL DEFAULT '',
     display_name	varchar(200)	NOT NULL,
     size		bigint		NOT NULL,
@@ -30,13 +30,13 @@ CREATE TABLE file (
 CREATE TABLE file_inst (
     id			serial		PRIMARY KEY,
     name 		text	 	NOT NULL,
-    repository		int		REFERENCES repository,
+    repository		int		NOT NULL REFERENCES repository,
     path 		text	 	NOT NULL, -- relative to repository
     deleted_on		date		NOT NULL DEFAULT '',
     marked_delete	boolean		NOT NULL,
     processed		boolean		NOT NULL,
     last_seen		date		NOT NULL,
-    file		int		REFERENCES file
+    file		int		NOT NULL REFERENCES file
 );
 
 
@@ -44,12 +44,12 @@ CREATE TABLE file_inst (
 CREATE TABLE scene (
     id			serial		PRIMARY KEY,
     wordbag		text		NOT NULL,
+    tsv			tsvector	,
     rating		int		,
     series		text		,
     series_number	int		,
-    label		text		,
-
-)
+    label		text		
+);
 
 
 
@@ -57,117 +57,170 @@ CREATE TABLE tag (
     id			serial		PRIMARY KEY,
     name		varchar(20)	NOT NULL,
     restricted		boolean		NOT NULL
-)
+);
 
 CREATE TABLE star (
     id			serial		PRIMARY KEY,
     name		varchar(40)	NOT NULL,
     gender		varchar(3)	NOT NULL
-)
+);
 
 CREATE TABLE scene_file (
-    scene_id		int		REFERENCES scene,
+    scene_id		int		NOT NULL REFERENCES scene,
     file_id		int		REFERENCES file,
     scene_number	int		,
-    tentative		boolean		NOT NULL,
-    negated		boolean		NOT NULL,
+    tentative		boolean		NOT NULL DEFAULT 't',
+    negated		boolean		NOT NULL DEFAULT 'f',
     CONSTRAINT scene_file_pkey PRIMARY KEY (scene_id, file_id)
-)
+);
 
 CREATE TABLE scene_tag (
-    scene_id		int		REFERENCES scene,
-    tag_id		int		REFERENCES tag,
-    tentative		boolean		NOT NULL,
-    negated		boolean		NOT NULL,
+    scene_id		int		NOT NULL REFERENCES scene,
+    tag_id		int		NOT NULL REFERENCES tag,
+    tentative		boolean		NOT NULL DEFAULT 't',
+    negated		boolean		NOT NULL DEFAULT 'f',
     CONSTRAINT scene_tag_pkey PRIMARY KEY (scene_id, tag_id)
-)
+);
 
 
 CREATE TABLE scene_star (
-    scene_id		int		REFERENCES scene,
-    star_id		int		REFERENCES star,
-    tentative		boolean		NOT NULL,
-    negated		boolean		NOT NULL,
+    scene_id		int		NOT NULL REFERENCES scene,
+    star_id		int		NOT NULL REFERENCES star,
+    tentative		boolean		NOT NULL DEFAULT 't',
+    negated		boolean		NOT NULL DEFAULT 'f',
     CONSTRAINT scene_star_pkey PRIMARY KEY (scene_id,star_id)
-)
+);
 
 CREATE TABLE alias (
     id			serial		PRIMARY KEY,
     alias		varchar(200)	NOT NULL
-)
+);
 
 CREATE TABLE label (
     id			serial		PRIMARY KEY,
     label		varchar(200)	NOT NULL
-)
+);
 
 CREATE TABLE series (
     id			serial		PRIMARY KEY,
     series		varchar(200)	NOT NULL
-)
+);
 
 CREATE TABLE alias_star (
-    alias_id		int		REFERENCES alias,
-    star_id		int		REFERENCES  star,
-    tentative		boolean		NOT NULL,
-    negated		boolean		NOT NULL,
+    alias_id		int		NOT NULL REFERENCES alias,
+    star_id		int		NOT NULL REFERENCES  star,
+    tentative		boolean		NOT NULL DEFAULT 't',
+    negated		boolean		NOT NULL DEFAULT 'f',
     CONSTRAINT alias_star_pkey PRIMARY KEY (alias_id,star_id)
-)
+);
 
 
 CREATE TABLE alias_label (
-    alias_id		int		REFERENCES alias,
-    label_id		int		REFERENCES  label,
-    tentative		boolean		NOT NULL,
-    negated		boolean		NOT NULL,
+    alias_id		int		NOT NULL REFERENCES alias,
+    label_id		int		NOT NULL REFERENCES  label,
+    tentative		boolean		NOT NULL DEFAULT 't',
+    negated		boolean		NOT NULL DEFAULT 'f',
     CONSTRAINT alias_lsabel_pkey PRIMARY KEY (alias_id,label_id)
-)
+);
 
 CREATE TABLE alias_series (
-    alias_id		int		REFERENCES alias,
-    series_id		int		REFERENCES  series,
-    tentative		boolean		NOT NULL,
-    negated		boolean		NOT NULL,
+    alias_id		int		NOT NULL REFERENCES alias,
+    series_id		int		NOT NULL REFERENCES  series,
+    tentative		boolean		NOT NULL DEFAULT 't',
+    negated		boolean		NOT NULL DEFAULT 'f',
     CONSTRAINT alias_series_pkey PRIMARY KEY (alias_id,series_id)
-)
+);
 
  -- TODO constrain alias table to be referenced in one of the mapping tables
+
+
+
+CREATE TABLE tag_rules (
+    id			serial		PRIMARY KEY,
+    condition		text		NOT NULL,
+    condition_type	VARCHAR(10)	NOT NULL,
+    tag_id		int		NOT NULL REFERENCES tag,
+    active		boolean		NOT NULL DEFAULT 't'
+);
+
+
+CREATE TABLE tag_implications (
+    id			serial		PRIMARY KEY,
+    predicate		int		NOT NULL REFERENCES tag,
+    implied		int		NOT NULL REFERENCES tag,
+    active		boolean		NOT NULL DEFAULT 't'
+);
 
 
 --------------------
 
     
 
+--  get the set of active scenes
+
+CREATE FUNCTION active_scenes () RETURNS SETOF scene AS $$
+    SELECT * FROM scene
+    where EXISTS (
+	SELECT * FROM scene
+	JOIN scene_file ON (scene_file.scene_id = scene.id)
+	JOIN file ON (scene_file.file_id = file.id)
+	JOIN file_inst ON (file_inst.file = file.id)
+	WHERE file_inst.marked_delete = 'f' AND file_inst.deleted_on IS NULL
+    )
+$$  LANGUAGE sql;   --plpgsql;
+
+
 --  get the set of active files
 
-CREATE FUNCTION active_scenes () RETURNS SET OF scene AS '
-    SELECT DISTINCT * FROM scene
-    JOIN scene_file ON (scene_file.scene_id = scene.id)
-    JOIN file ON (scene_file.file_id = file.id)
-    JOIN file_inst ON (file_inst.file = file.id)
-    WHERE file_inst.marked_delete = 'f' AND file_inst.deleted_on IS NULL
-'  LANGUAGE sql;   --plpgsql;
-
-
---  get the set of active files
-
-CREATE FUNCTION active_files () RETURNS SET OF file AS '
-    SELECT DISTINCT * FROM file
-    JOIN file_inst ON (file_inst.file = file.id)
-    WHERE file_inst.marked_delete = 'f' AND file_inst.deleted_on IS NULL
-'  LANGUAGE sql;   --plpgsql;
+CREATE FUNCTION active_files () RETURNS SETOF file AS $$
+    SELECT * FROM file
+    WHERE EXISTS(
+	SELECT * FROM file JOIN file_inst ON (file_inst.file = file.id) 
+	    WHERE file_inst.marked_delete = 'f' AND file_inst.deleted_on IS NULL
+	)
+$$  LANGUAGE sql;   --plpgsql;
 
 
 
 --------------------
 
-CREATE FUNCTION update_tsv () AS '
-    UPDDATE file SET tokens = to_tsvector(s.tokens)
+CREATE OR REPLACE FUNCTION concat_tsvectors(tsv1 tsvector, tsv2 tsvector)
+RETURNS tsvector AS $$
+BEGIN
+  RETURN coalesce(tsv1, to_tsvector('default', ''))
+      || coalesce(tsv2, to_tsvector('default', ''));
+END;
+$$ LANGUAGE plpgsql;
+ 
+CREATE AGGREGATE tsvector_agg (
+  BASETYPE = tsvector,
+  SFUNC = concat_tsvectors,
+  STYPE = tsvector,
+  INITCOND = ''
+);
+
+
+CREATE FUNCTION update_file_tsv () RETURNS VOID AS $$
+    UPDDATE file SET tsv = to_tsvector(s.tsv)
     FROM (
 	SELECT file.id, STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
-	    || file.wordbag tokens
+	    || file.wordbag tsv
 	FROM file
 	INNER JOIN file_inst ON(file_inst.file = file.id)
-	GROUP BYfile.id
+	GROUP BY file.id
     ) s WHERE file.id = s.id
-'  LANGUAGE sql;
+$$  LANGUAGE sql;
+
+
+CREATE FUNCTION update_scene_tsv () AS $$
+    UPDDATE scene SET tsv = to_tsvector(s.tsv)
+    FROM (
+	SELECT scene.id, TSVECTOR_AGG(file.tsv) || scene.wordbag tsv
+	FROM file
+	INNER JOIN scene_file ON(scene_file.scene_id = scene.id)
+	INNER JOIN file ON(scene_file.file_id = file.id)
+	GROUP BY scene.id
+    ) s WHERE scene.id = s.id
+$$  LANGUAGE sql;
+
+
