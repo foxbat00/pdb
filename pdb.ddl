@@ -131,17 +131,27 @@ CREATE TABLE alias_series (
     CONSTRAINT alias_series_pkey PRIMARY KEY (alias_id,series_id)
 );
 
+CREATE TABLE alias_tag (
+    alias_id		int		NOT NULL REFERENCES alias,
+    tag_id		int		NOT NULL REFERENCES  tag,
+    tentative		boolean		NOT NULL DEFAULT 't',
+    negated		boolean		NOT NULL DEFAULT 'f',
+    CONSTRAINT alias_tag_series_pkey PRIMARY KEY (alias_id,tag_id)
+);
+
+
  -- TODO constrain alias table to be referenced in one of the mapping tables
 
 
 
-CREATE TABLE tag_rules (
+CREATE TABLE alias_rules (
     id			serial		PRIMARY KEY,
     condition		text		NOT NULL,
     condition_type	VARCHAR(10)	NOT NULL,
-    tag_id		int		NOT NULL REFERENCES tag,
+    alias_id		int		NOT NULL REFERENCES alias,
     active		boolean		NOT NULL DEFAULT 't',
-    exclude		boolean		NOT NULL DEFAULT 'f'
+    exclude		boolean		NOT NULL DEFAULT 'f',
+    case_sensitive	boolean		NOT NULL DEFAULT 'f'
 );
 
 
