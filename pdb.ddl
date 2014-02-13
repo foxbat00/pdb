@@ -231,7 +231,7 @@ CREATE FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
     BEGIN
     EXECUTE $B$
 	SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
-	    || ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || OLD.wordbag
+	    || ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag
 	    FROM scene, scene_file, file, file_inst
 	    WHERE scene.id = scene_file.scene_id 
 	    AND file.id = scene_file.file_id
