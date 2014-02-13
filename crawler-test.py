@@ -116,20 +116,21 @@ def FileLoader(repoq,fileq):
 	with transaction_context() as session:
 	    r = session.query(Repository).get(rid)
 	    logger.info("Examining repo: %s" % r)
+	    rpath = r.path
 	    
-	    if not os.path.isdir(r.path):
-		logger.error("Repository not found: %s" % r.path)
+	    if not os.path.isdir(rpath):
+		logger.error("Repository not found: %s" % rpath)
 		return
 	    walkargs = {'followlinks':True, 'onerror':'self.scanError'}
 	    # recurse
-	    for dirpath, dirname, files in os.walk(r.path,**walkargs):
+	    for root, dirs, files in os.walk(rpath,**walkargs):
 		for f in files:
-		    #logger.debug("FileLoader walking to %s/%s/%s" % (dirpath, dirname, f))
+		    logger.debug("FileLoader walking to %s/%s" % (root, f))
 		    fpart,ext = os.path.splitext(f)
 		    if not validFile(fpart,ext):
-			logger.debug("   not valid filename/extension: %s/%s #%s#" % (dirpath,fpart,ext))
-			break
-		    sf = ScanFile(r.id,os.path.relpath(dirpath,r.path),f)
+			logger.debug("   not valid filename/extension: %s/%s #%s#" % (root,fpart,ext))
+			continue
+		    sf = ScanFile(r.id, os.path.relpath(root,rpath), f)
 		    logger.debug("adding %s to fileq" % sf)
 		    fileq.put(sf)
 		
