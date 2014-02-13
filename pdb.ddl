@@ -140,7 +140,8 @@ CREATE TABLE tag_rules (
     condition		text		NOT NULL,
     condition_type	VARCHAR(10)	NOT NULL,
     tag_id		int		NOT NULL REFERENCES tag,
-    active		boolean		NOT NULL DEFAULT 't'
+    active		boolean		NOT NULL DEFAULT 't',
+    exclude		boolean		NOT NULL DEFAULT 'f'
 );
 
 
@@ -181,8 +182,18 @@ CREATE FUNCTION active_files () RETURNS SETOF file AS $$
 $$  LANGUAGE sql;   --plpgsql;
 
 
+CREATE FUNCTION get_words_for_scene (int) RETURNS TEXT AS $A$
+    SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
+	|| ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag
+	FROM scene
+	JOIN scene_file ON (scene_file.scene_id = scene.id)
+	JOIN file ON (scene_file.file_id = file.id)
+	JOIN file_inst ON (file_inst.file = file.id)
+	WHERE scene.id = $1
+	GROUP BY scene.wordbag
+$A$ LANGUAGE sql;
+    
 
---------------------
 
 CREATE OR REPLACE FUNCTION concat_tsvectors(tsv1 tsvector, tsv2 tsvector)
 RETURNS tsvector AS $$
@@ -199,21 +210,7 @@ CREATE AGGREGATE tsvector_agg (
   INITCOND = ''
 );
 
-/*  --REMOVED
-CREATE FUNCTION update_file_tsv () RETURNS TRIGGER AS $A$
-    DECLARE 
-	words text;
-    BEGIN
-    EXECUTE $B$
-	SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
-	    || ' ' || OLD.wordbag 
-	    FROM file, file_inst WHERE file_inst.file = file.id 
-    $B$ INTO words;
-    NEW.tsv = to_tsvector(words);
-    return NEW;
-    END;
-$A$ LANGUAGE plpgsql;
-*/
+
 
 CREATE FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
     DECLARE 
@@ -231,6 +228,7 @@ CREATE FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
     return NEW;
     END;
 $A$ LANGUAGE plpgsql;
+
 
 
 
