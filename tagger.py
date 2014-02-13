@@ -15,7 +15,6 @@ from twisted.internet.threads import deferToThread
 
 # globals
 logfile = 'logs/log.txt'
-threadMax = 4
 
 
 
@@ -25,7 +24,7 @@ threadMax = 4
 from db import *
 from models import *
 from util import *
-Session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
+session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
 
 # logging
 format = "%(levelname)s (%(threadName)s): %(message)s"
@@ -41,32 +40,14 @@ logger.addHandler(logoutput)
 
 
 
-@contextmanager
-def session_scope():
-    """Provide a transactional scope around a series of operations."""
-    session = Session()
-    try:
-        yield session
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        #session.close()
-        session.remove()
-
-def threaded(fn):
-    @wraps(fn)  # functools.wraps
-    def wrapper(*args, **kwargs):
-	return deferToThread(fn, *args, **kwargs)  # t.i.threads.deferToThread
-    return wrapper
-
-
-
-
 # collect files that have no scene
 files_query = session.query(File).filter(_not(exists().where(SceneFile.file_id == File.id)))
 files = files_query.all()
+
+
+tag_rules = session.query(TagRules).filter(TagRules.active == True).all()
+tag_implic = session.query(TagImplic).filter(TagImplic.active == True).all()
+
 
 
 for file in files:
@@ -81,8 +62,9 @@ for file in files:
     session.commit()
     
 
-
     # iterate over tag_rules
+    
+
 
 
 

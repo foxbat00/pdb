@@ -56,7 +56,7 @@ def transaction_context():
         raise
     finally:
         #session.close()
-        #Session.remove()
+        session.remove()
 	pass
 
 # TODO: should consider more carefully how to handle mutex here....
