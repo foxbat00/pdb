@@ -14,7 +14,8 @@ from functools import wraps
 
 # globals
 logfile = 'logs/log.txt'
-validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx", ".m4v", ".mkv"]
+validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx"
+    , ".m4v", ".mkv", ".mov", ".asf", ".mp4", ".flv"]
 threadMax = 4
 
 
@@ -87,8 +88,12 @@ class UpdateFile():
 
 
 
-def validExt(ext):
-    return True if ext.lower() in validExts else False
+def validFile(fname, ext):
+    if ext.lower() in validExts   and    not re.search(r'^\.',fname):
+	return True
+    else:
+	return False
+    
 
 
 
@@ -103,6 +108,11 @@ def FileLoader(repoq,fileq):
 
     @threaded
     def load(rid):
+	def scanError(e):
+	    logger.debug("SCAN ERROR !!!!!!!")
+	    raise e
+
+
 	with transaction_context() as session:
 	    r = session.query(Repository).get(rid)
 	    logger.info("Examining repo: %s" % r)
@@ -114,9 +124,10 @@ def FileLoader(repoq,fileq):
 	    # recurse
 	    for dirpath, dirname, files in os.walk(r.path,**walkargs):
 		for f in files:
+		    #logger.debug("FileLoader walking to %s/%s/%s" % (dirpath, dirname, f))
 		    fpart,ext = os.path.splitext(f)
-		    if not validExt(ext):
-			#logger.debug("   not valid extension")
+		    if not validFile(fpart,ext):
+			logger.debug("   not valid filename/extension: %s/%s #%s#" % (dirpath,fpart,ext))
 			break
 		    sf = ScanFile(r.id,os.path.relpath(dirpath,r.path),f)
 		    logger.debug("adding %s to fileq" % sf)

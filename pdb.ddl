@@ -155,10 +155,13 @@ CREATE TABLE alias_rules (
 );
 
 
-CREATE TABLE tag_implications (
+CREATE TABLE alias_implications (
     id			serial		PRIMARY KEY,
-    predicate		int		NOT NULL REFERENCES tag,
-    implied		int		NOT NULL REFERENCES tag,
+    predicate		int		NOT NULL,
+    predicate_type	varchar(20)	NOT NULL,
+    target		int		NOT NULL,
+    target_type		varchar(20)	NOT NULL,
+    operator		varchar(5)	NOT NULL,
     active		boolean		NOT NULL DEFAULT 't'
 );
 

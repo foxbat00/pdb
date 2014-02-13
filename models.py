@@ -113,6 +113,10 @@ class SceneFile(Base):
 class SceneTag(Base):
     __table__ = Table('scene_tag', Base.metadata, autoload=True)
 
+    def __init__(self, scene_id, tag_id):
+	self.scene_id = scene_id 
+	self.tag_id = tag_id 
+
 class SceneStar(Base):
     __table__ = Table('scene_star', Base.metadata, autoload=True)
 
@@ -129,10 +133,10 @@ class AliasSeries(Base):
  
 # tagging
 
-class TagRules(Base):
-    __table__ = Table('tag_rules', Base.metadata, autoload=True)
+class AliasRules(Base):
+    __table__ = Table('alias_rules', Base.metadata, autoload=True)
 
-class TagImplic(Base):
+class AliasImplic(Base):
     __table__ = Table('tag_implications', Base.metadata, autoload=True)
 
 
