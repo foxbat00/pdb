@@ -10,7 +10,6 @@ from Queue import Queue
 import logging 
 from contextlib import contextmanager
 from functools import wraps
-from twisted.internet.threads import deferToThread
 
 
 # globals
@@ -28,7 +27,6 @@ updateq = Queue()
 from db import *
 from models import *
 from util import *
-Session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
 
 # logging
 format = "%(levelname)s (%(threadName)s): %(message)s"
@@ -47,9 +45,9 @@ logger.info("##### starting new file crawl at %s" % datetime.datetime.now())
 
 
 @contextmanager
-def session_scope():
+def transaction_context():
     """Provide a transactional scope around a series of operations."""
-    session = Session()
+    session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
     try:
         yield session
         session.commit()
@@ -58,12 +56,14 @@ def session_scope():
         raise
     finally:
         #session.close()
-        session.remove()
+        #Session.remove()
+	pass
 
+# TODO: should consider more carefully how to handle mutex here....
 def threaded(fn):
     @wraps(fn)  # functools.wraps
     def wrapper(*args, **kwargs):
-	return deferToThread(fn, *args, **kwargs)  # t.i.threads.deferToThread
+	return fn(*args, **kwargs)  
     return wrapper
 
 
@@ -103,9 +103,8 @@ def FileLoader(repoq,fileq):
 
     @threaded
     def load(rid):
-	with trasaction_context as session:
-	    r = session.query(Repository).filter(Repository.id == str(rid)).first()
-	    #session.merge(r, load=False) # not needed bc this comes from main thread???
+	with transaction_context() as session:
+	    r = session.query(Repository).get(rid)
 	    logger.info("Examining repo: %s" % r)
 	    
 	    if not os.path.isdir(r.path):
@@ -122,13 +121,13 @@ def FileLoader(repoq,fileq):
 		    sf = ScanFile(r.id,os.path.relpath(dirpath,r.path),f)
 		    logger.debug("adding %s to fileq" % sf)
 		    fileq.put(sf)
-		    return
 		
 
     logger.debug("fileLoader running")
     #while not self.repoq.empty():
     while True:
 	rid = repoq.get()
+	logger.debug("loading repo %d" % rid)
 	load(rid)
 	repoq.task_done()
 
@@ -141,18 +140,15 @@ def FileScanner (fileq):
 
     @threaded
     def considerFile(scanfile):
-	with trasaction_context as session:
-	    #logger.debug("TEST -- scanfile = %s" % scanfile)
+	with transaction_context() as session:
 	    repo = session.query(Repository).filter(Repository.id == str(scanfile.repo)).first()
 	    path = scanfile.relpath
 	    fname = scanfile.fname
 
 	    
 	    fullname = modJoin(repo.path,path,fname)
-	    fsize = os.path.getsize(fullname)
-
 	    logger.info("considering %s" % fullname)
-
+	    fsize = os.path.getsize(fullname)
 
 	    # shortcut - if this file matches by filename and size, let's avoid md5summing it.
 	    q = (session.query(FileInst,File).join(File).filter(File.size == fsize, FileInst.name == fname \
@@ -235,7 +231,6 @@ def FileScanner (fileq):
 			    
 				
     logger.debug("fileScanner running")
-    #while not self.fileq.empty():
     while True:
 	sf = fileq.get()
 	considerFile(sf)
@@ -247,7 +242,7 @@ def FileUpdater(updateq):
 
     @threaded
     def updateFileInst(fi,r):
-	with trasaction_context as session:
+	with transaction_context() as session:
 	    fi = session.query(FileInst).filter(FileInst.id == str(fiid)).first()
 	    r = session.query(Repository).filter(Repository.id == str(rid)).first()
 	    logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
@@ -287,6 +282,7 @@ for r in rs:
     rid = r.id
     repoq.put(rid)
 
+# FileLoaders consume repos from the repoq, scan those repos, and add files to the fileq
 logger.debug("launching FileLoaders")
 for i in range (threadMax if len(rs) > threadMax else len(rs)):
     t = Thread(target=FileLoader, args=(repoq,fileq))
@@ -295,7 +291,9 @@ for i in range (threadMax if len(rs) > threadMax else len(rs)):
 
 repoq.join() # wait/ensure for everything to be added...
 logger.info(" --done enqueuing files (FileLoaders)-- complete %s" % datetime.datetime.now())
+logger.debug(" the queue for FileScanners is %d" % fileq.qsize())
 
+# FileScanners consume files from the fileq, analyzes them,  and add records to the database
 logger.debug("launching FileScanners")
 for i in range (threadMax):
     t  = Thread(target=FileScanner, args=(fileq,)) # requires a tuple
@@ -325,6 +323,7 @@ if not updateq.empty():
 	t.start()
 
 updateq.join()
+session.close()
 logger.info("###### crawl of files not recently seen -- complete %s #######" % datetime.datetime.now())
 
 

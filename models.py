@@ -62,3 +62,79 @@ class FileInst(Base):
 	return modJoin(self.Repo.path,self.path,self.name)
 
 
+class Scene(Base):
+    __table__ = Table('scene', Base.metadata, autoload=True)
+
+    def __init__(self, name):
+	self.name = name 
+
+    def __repr__(self): 
+	return "<Scene id=%d name=\"%s\">" % (self.id, self.name)
+
+
+
+
+class Tag(Base):
+    __table__ = Table('tag', Base.metadata, autoload=True)
+    def __repr__(self): 
+	return "<Tag id=%d name=\"%s\">" % (self.id, self.name)
+
+class Star(Base):
+    __table__ = Table('star', Base.metadata, autoload=True)
+    def __repr__(self): 
+	return "<Star id=%d name=\"%s\">" % (self.id, self.name)
+
+class Label(Base):
+    __table__ = Table('label', Base.metadata, autoload=True)
+    def __repr__(self): 
+	return "<Label id=%d name=\"%s\">" % (self.id, self.name)
+
+class Alias(Base):
+    __table__ = Table('alias', Base.metadata, autoload=True)
+    def __repr__(self): 
+	return "<Alias id=%d name=\"%s\">" % (self.id, self.name)
+
+class Series(Base):
+    __table__ = Table('series', Base.metadata, autoload=True)
+    def __repr__(self): 
+	return "<Series id=%d name=\"%s\">" % (self.id, self.name)
+
+
+
+# mapping tables
+
+class SceneFile(Base):
+    __table__ = Table('scene_file', Base.metadata, autoload=True)
+
+    def __init__(self, scene_id, file_id):
+	self.scene_id = scene_id 
+	self.file_id = file_id 
+
+class SceneTag(Base):
+    __table__ = Table('scene_tag', Base.metadata, autoload=True)
+
+class SceneStar(Base):
+    __table__ = Table('scene_star', Base.metadata, autoload=True)
+
+class AliasStar(Base):
+    __table__ = Table('alias_star', Base.metadata, autoload=True)
+
+class AliasLabel(Base):
+    __table__ = Table('alias_label', Base.metadata, autoload=True)
+
+class AliasSeries(Base):
+    __table__ = Table('alias_series', Base.metadata, autoload=True)
+
+
+ 
+# tagging
+
+class TagRules(Base):
+    __table__ = Table('tag_rules', Base.metadata, autoload=True)
+
+class TagImplic(Base):
+    __table__ = Table('tag_implications', Base.metadata, autoload=True)
+
+
+
+

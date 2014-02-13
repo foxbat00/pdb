@@ -65,10 +65,25 @@ def threaded(fn):
 
 
 # collect files that have no scene
-    # make tentative scene
-    # create the tsvector for the scene
+files_query = session.query(File).filter(_not(exists().where(SceneFile.file_id == File.id)))
+files = files_query.all()
 
-    # iterate over tag rules
+
+for file in files:
+
+
+    # make tentative scene
+    scene = Scene(file.name)
+    session.add(scene)
+    session.flush()
+    sf = SceneFile(scene.id, file.id)
+    session.add(sf)
+    session.commit()
+    
+
+
+    # iterate over tag_rules
+
 
 
     # iterate over tag_implications 
