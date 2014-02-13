@@ -8,11 +8,14 @@ import re, sys, os
 from threading import Thread
 from Queue import Queue
 import logging 
+from contextlib import contextmanager
+from functools import wraps
 
 
 # globals
 logfile = 'logs/log.txt'
-validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx", ".m4v", ".mkv"]
+validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx"
+    , ".m4v", ".mkv", ".mov", ".asf", ".mp4", ".flv"]
 threadMax = 4
 
 
@@ -42,8 +45,27 @@ logger.addHandler(logoutput)
 logger.info("##### starting new file crawl at %s" % datetime.datetime.now())
 
 
+@contextmanager
+def transaction_context():
+    """Provide a transactional scope around a series of operations."""
+    session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        #session.close()
+        session.remove()
+	pass
 
-
+# TODO: should consider more carefully how to handle mutex here....
+def threaded(fn):
+    @wraps(fn)  # functools.wraps
+    def wrapper(*args, **kwargs):
+	return fn(*args, **kwargs)  
+    return wrapper
 
 
 
@@ -65,127 +87,16 @@ class UpdateFile():
 	return "<ScanFile repo=%d, fi=%d>" % (self.repo, self.fi)
 
 
-#############################################################
-#
-#   functions
-#
-#############################################################
 
-def validExt(ext):
-    return True if ext.lower() in validExts else False
-
-def updateFileInst(fi,r):
-    logger.debug("inside update")
-    if not os.path.isfile(modJoin(r.path,fi.path,fi.name)):
-	fi.deleted_on = datetime.datetime.now()
+def validFile(fname, ext):
+    if ext.lower() in validExts   and    not re.search(r'^\.',fname):
+	return True
     else:
-	fi.last_seen = datetime.datetime.now()
-    logger.debug("done update")
-    session.commit()
-    return fi,r
-
-
-
-# consider a particular file
-
-    # repo is an ORM object, path and fname are strings
-
-def considerFile(scanfile):
-
-    #logger.debug("TEST -- scanfile = %s" % scanfile)
-    repo = session.query(Repository).filter(Repository.id == str(scanfile.repo)).first()
-    path = scanfile.relpath
-    fname = scanfile.fname
-
+	return False
     
-    fullname = modJoin(repo.path,path,fname)
-    fsize = os.path.getsize(fullname)
-
-    logger.info("considering %s" % fullname)
 
 
-    # shortcut - if this file matches by filename and size, let's avoid md5summing it.
-    q = (session.query(FileInst,File).join(File).filter(File.size == fsize, FileInst.name == fname \
-	, FileInst.path == path, FileInst.repository == repo.id).first() )
-    if q:
-	(fi,f) = q
-	logger.debug(" shortcutting")
-	f.last_crawled = datetime.datetime.now()  # consider this later
-	fi.last_seen = datetime.datetime.now()
-	fi.deleted_on = None
-	session.commit()
-	session.expunge(f)
-	session.expunge(fi)
-	return
 
-
-    logger.debug(" checksumming...")
-    fhash = md5sum(fullname)
-
-    # see if the size matches any recorded file
-    logger.debug("fsize = %d, fhash = %s" % (fsize, fhash))
-    existing = session.query(File).filter(File.size==fsize).filter(File.md5hash==fhash).first()
-
-    if not existing:
-	logger.debug("   no existing file matches - creating file and fileinst")
-
-	f = File(fsize,fhash,fname)
-	session.add(f)
-	session.flush()
-	fi = FileInst(fname, path, repo, f)
-	fi.file = f.id
-	session.add(fi)
-	session.commit()
-	session.expunge(fi)
-	session.expunge(f)
-	return
-    
-    else:
-	
-	logger.debug("   existing file matches - id = %d " % existing.id)
-
-	# mark as crawled
-	existing.last_crawled = datetime.datetime.now()
-	session.commit()
-
-	# get corresponding file_insts
-	fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file == existing.id).all()
-	logger.debug("   found file and %d existing instances" % int(len(fis)/2) )
-
-
-	# scan for deleted, mark as seen the rest
-	for q in fis:
-	    (fi,r) = q
-	    updateFileInst(fi,r)
-	    
-
-	# if an instance has been deleted recently, let's reactivate it 
-	for q in fis:
-	    (fi,r) = q
-	    d = fi.deleted_on
-	    if d and d > datetime.datetime.now() - datetime.timedelta(weeks=1):
-		logdebug("      reactivating old instance")
-		fi,r = fis
-		fi.name = fname
-		fi.path = path
-		fi.repository = repo.id
-		fi.last_seen = datetime.datetime.now()
-		deleted_on = None
-		session.commit()
-		session.expunge(fi)
-		session.expunge(existing)
-		return
-
-	# otherwise, create a new file instance
-	    else:
-		logger.debug("      creating new instance")
-		fi = FileInst(fname,path,repo,existing)
-		session.add(fi)
-		session.commit()
-		session.expunge(fi)
-		return
-		    
-			
 #############################################################
 #
 #  thread classes
@@ -193,48 +104,145 @@ def considerFile(scanfile):
 #############################################################
 
 
-
-
-
-
-
-
 def FileLoader(repoq,fileq):
 
-    def scanErro(e):
-	raise e
+    @threaded
+    def load(rid):
+	def scanError(e):
+	    logger.debug("SCAN ERROR !!!!!!!")
+	    raise e
 
-    session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
+
+	with transaction_context() as session:
+	    r = session.query(Repository).get(rid)
+	    logger.info("Examining repo: %s" % r)
+	    rpath = r.path
+	    
+	    if not os.path.isdir(rpath):
+		logger.error("Repository not found: %s" % rpath)
+		return
+	    walkargs = {'followlinks':True, 'onerror':'self.scanError'}
+	    # recurse
+	    for root, dirs, files in os.walk(rpath,**walkargs):
+		for f in files:
+		    logger.debug("FileLoader walking to %s/%s" % (root, f))
+		    fpart,ext = os.path.splitext(f)
+		    if not validFile(fpart,ext):
+			logger.debug("   not valid filename/extension: %s/%s #%s#" % (root,fpart,ext))
+			continue
+		    sf = ScanFile(r.id, os.path.relpath(root,rpath), f)
+		    logger.debug("adding %s to fileq" % sf)
+		    fileq.put(sf)
+		
+
     logger.debug("fileLoader running")
     #while not self.repoq.empty():
     while True:
 	rid = repoq.get()
-	r = session.query(Repository).filter(Repository.id == str(rid)).first()
-	#session.merge(r, load=False) # not needed bc this comes from main thread???
-	logger.info("Examining repo: %s" % r)
-	
-	if not os.path.isdir(r.path):
-	    logger.error("Repository not found: %s" % r.path)
-	    break
-	walkargs = {'followlinks':True, 'onerror':'self.scanError'}
-	# recurse
-	for dirpath, dirname, files in os.walk(r.path,**walkargs):
-	    for f in files:
-		fpart,ext = os.path.splitext(f)
-		if not validExt(ext):
-		    #logger.debug("   not valid extension")
-		    break
-		sf = ScanFile(r.id,os.path.relpath(dirpath,r.path),f)
-		logger.debug("adding %s to fileq" % sf)
-		fileq.put(sf)
+	logger.debug("loading repo %d" % rid)
+	load(rid)
 	repoq.task_done()
-	    
+
+    def scanErro(e):
+	raise e
+
 
 
 def FileScanner (fileq):
-    session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
+
+    @threaded
+    def considerFile(scanfile):
+	with transaction_context() as session:
+	    repo = session.query(Repository).filter(Repository.id == str(scanfile.repo)).first()
+	    path = scanfile.relpath
+	    fname = scanfile.fname
+
+	    
+	    fullname = modJoin(repo.path,path,fname)
+	    logger.info("considering %s" % fullname)
+	    fsize = os.path.getsize(fullname)
+
+	    # shortcut - if this file matches by filename and size, let's avoid md5summing it.
+	    q = (session.query(FileInst,File).join(File).filter(File.size == fsize, FileInst.name == fname \
+		, FileInst.path == path, FileInst.repository == repo.id).first() )
+	    if q:
+		(fi,f) = q
+		logger.debug(" shortcutting")
+		fi.last_seen = datetime.datetime.now()
+		fi.deleted_on = None
+		session.flush()
+		return
+
+
+	    logger.debug(" checksumming...")
+	    fhash = md5sum(fullname)
+
+	    # see if the size matches any recorded file
+	    logger.debug("fsize = %d, fhash = %s" % (fsize, fhash))
+	    existing = session.query(File).filter(File.size==fsize).filter(File.md5hash==fhash).first()
+
+	    if not existing:
+		logger.debug("   no existing file matches - creating file and fileinst")
+
+		f = File(fsize,fhash,fname)
+		session.add(f)
+		session.flush()
+		fi = FileInst(fname, path, repo, f)
+		fi.file = f.id
+		session.add(fi)
+		session.flush()
+		return
+	    
+	    else:
+		
+		logger.debug("   existing file matches - id = %d " % existing.id)
+
+		# mark as crawled
+		existing.last_crawled = datetime.datetime.now()
+		session.flush()
+
+		# get corresponding file_insts
+		fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file == existing.id).all()
+		logger.debug("   found file and %d existing instances" % int(len(fis)/2) )
+
+
+		# scan for deleted, mark as seen the rest
+		for q in fis:
+		    (fi,r) = q
+		    logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
+		    if not os.path.isfile(modJoin(r.path,fi.path,fi.name)):
+			fi.deleted_on = datetime.datetime.now()
+		    else:
+			fi.last_seen = datetime.datetime.now()
+		    logger.debug("done update")
+		    
+
+		# now that all fileInst have been checked, before creating a new one, let's see if we can fix an old
+		# if an instance has been deleted recently, let's reactivate it 
+		for q in fis:
+		    (fi,r) = q
+		    d = fi.deleted_on
+		    if d and d > datetime.datetime.now() - datetime.timedelta(weeks=1):
+			logdebug("      reactivating old instance")
+			fi,r = fis
+			fi.name = fname
+			fi.path = path
+			fi.repository = repo.id
+			fi.last_seen = datetime.datetime.now()
+			deleted_on = None
+			session.flush()
+			return
+
+		    # otherwise, create a new file instance
+		    else:
+			logger.debug("      creating new instance")
+			fi = FileInst(fname,path,repo,existing)
+			session.add(fi)
+			session.flush()
+			return
+			    
+				
     logger.debug("fileScanner running")
-    #while not self.fileq.empty():
     while True:
 	sf = fileq.get()
 	considerFile(sf)
@@ -242,23 +250,27 @@ def FileScanner (fileq):
 
 
 
-
 def FileUpdater(updateq):
-    session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
+
+    @threaded
+    def updateFileInst(fi,r):
+	with transaction_context() as session:
+	    fi = session.query(FileInst).filter(FileInst.id == str(fiid)).first()
+	    r = session.query(Repository).filter(Repository.id == str(rid)).first()
+	    logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
+	    if not os.path.isfile(modJoin(r.path,fi.path,fi.name)):
+		fi.deleted_on = datetime.datetime.now()
+	    else:
+		fi.last_seen = datetime.datetime.now()
+	    logger.debug("done update")
+	    session.flush()
+
+
     logger.debug("fileUpdater running")
     while True:
 	uf = updateq.get()
-	fiid = uf.fi
-	rid = uf.repo
-	fi = session.query(FileInst).filter(FileInst.id == str(fiid)).first()
-	r = session.query(Repository).filter(Repository.id == str(rid)).first()
-	logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
-	updateFileInst(fi,r)
+	updateFileInst(uf.fi, uf.repo)
 	updateq.task_done()
-
-
-
-
 
 
 #############################################################
@@ -282,6 +294,7 @@ for r in rs:
     rid = r.id
     repoq.put(rid)
 
+# FileLoaders consume repos from the repoq, scan those repos, and add files to the fileq
 logger.debug("launching FileLoaders")
 for i in range (threadMax if len(rs) > threadMax else len(rs)):
     t = Thread(target=FileLoader, args=(repoq,fileq))
@@ -290,7 +303,9 @@ for i in range (threadMax if len(rs) > threadMax else len(rs)):
 
 repoq.join() # wait/ensure for everything to be added...
 logger.info(" --done enqueuing files (FileLoaders)-- complete %s" % datetime.datetime.now())
+logger.debug(" the queue for FileScanners is %d" % fileq.qsize())
 
+# FileScanners consume files from the fileq, analyzes them,  and add records to the database
 logger.debug("launching FileScanners")
 for i in range (threadMax):
     t  = Thread(target=FileScanner, args=(fileq,)) # requires a tuple
