@@ -169,6 +169,21 @@ CREATE TABLE alias_implications (
 --------------------
 
     
+CREATE OR REPLACE FUNCTION concat_tsvectors(tsv1 tsvector, tsv2 tsvector)
+RETURNS tsvector AS $$
+BEGIN
+  RETURN coalesce(tsv1, to_tsvector('default', ''))
+      || coalesce(tsv2, to_tsvector('default', ''));
+END;
+$$ LANGUAGE plpgsql;
+ 
+CREATE AGGREGATE tsvector_agg (
+  BASETYPE = tsvector,
+  SFUNC = concat_tsvectors,
+  STYPE = tsvector,
+  INITCOND = ''
+);
+
 
 --  get the set of active scenes
 
@@ -195,55 +210,62 @@ CREATE FUNCTION active_files () RETURNS SETOF file AS $$
 $$  LANGUAGE sql;   --plpgsql;
 
 
+
+
 CREATE FUNCTION get_words_for_scene (int) RETURNS TEXT AS $A$
     SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
 	|| ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag
 	FROM scene
-	JOIN scene_file ON (scene_file.scene_id = scene.id)
-	JOIN file ON (scene_file.file_id = file.id)
-	JOIN file_inst ON (file_inst.file = file.id)
 	WHERE scene.id = $1
 	GROUP BY scene.wordbag
 $A$ LANGUAGE sql;
     
 
-
-CREATE OR REPLACE FUNCTION concat_tsvectors(tsv1 tsvector, tsv2 tsvector)
-RETURNS tsvector AS $$
-BEGIN
-  RETURN coalesce(tsv1, to_tsvector('default', ''))
-      || coalesce(tsv2, to_tsvector('default', ''));
-END;
-$$ LANGUAGE plpgsql;
- 
-CREATE AGGREGATE tsvector_agg (
-  BASETYPE = tsvector,
-  SFUNC = concat_tsvectors,
-  STYPE = tsvector,
-  INITCOND = ''
-);
-
-
-
 CREATE FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
     DECLARE 
 	words text;
+	sceneid int[];
+	scene int;
     BEGIN
-    EXECUTE $B$
-	SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
-	    || ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag
-	    FROM scene, scene_file, file, file_inst
-	    WHERE scene.id = scene_file.scene_id 
-	    AND file.id = scene_file.file_id
-	    AND file_inst.file = file.id
-    $B$  into words;
-    NEW.tsv = to_tsvector(words);
-    return NEW;
+	IF TG_TABLE_NAME = 'scene' THEN
+	    sceneid := ARRAY[NEW.id];
+	ELSIF TG_TABLE_NAME = 'scene_file' THEN
+	    sceneid := ARRAY[NEW.scene_id];
+	ELSIF TG_TABLE_NAME = 'file' THEN
+	    EXECUTE $B$
+		SELECT scene_id FROM scene_file
+		WHERE scene_file.file_id = $1
+	    $B$ INTO sceneid USING  NEW.id;
+	ELSIF TG_TABLE_NAME = 'file_inst' THEN
+	    EXECUTE $B$
+		SELECT distinct scene_file.scene_id FROM file_inst
+		JOIN file ON (file.id = file_inst.file)
+		JOIN scene_file ON (scene_file.file_id = file.id)
+		WHERE file_inst.id = $1
+	    $B$ INTO sceneid USING  NEW.id;
+	END IF;
+
+	IF sceneid IS NULL THEN
+	    return NEW;
+	END IF;
+	FOREACH scene IN ARRAY sceneid LOOP
+	    EXECUTE $B$
+		SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
+		    || ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag
+		    FROM scene
+		    JOIN scene_file ON (scene_file.scene_id = scene.id)
+		    JOIN file ON (scene_file.file_id = file.id)
+		    JOIN file_inst ON (file_inst.file = file.id)
+		    GROUP BY scene
+		    HAVING scene.id = $1
+	    $B$  INTO words USING scene;
+	    EXECUTE $B$
+		UPDATE scene SET tsv = TO_TSVECTOR($1) WHERE scene.id = $2
+	    $B$ USING words, scene;
+	END LOOP;
+	return NEW;
     END;
 $A$ LANGUAGE plpgsql;
-
-
-
 
 
 CREATE TRIGGER update_scene_tsv AFTER 
@@ -261,5 +283,4 @@ FOR EACH ROW EXECUTE PROCEDURE update_scene_tsv();
 CREATE TRIGGER update_scene_tsv AFTER 
     INSERT OR UPDATE OF file ON file_inst
 FOR EACH ROW EXECUTE PROCEDURE update_scene_tsv();
-
 
