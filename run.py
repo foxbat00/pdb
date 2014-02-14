@@ -4,7 +4,7 @@ import os, re
 
 
 # TODO:  figure out how to move this into config.py (and possibly also define port # there)
-DIRS_TO_MONITOR_FOR_RELOAD = ['app/templates',]
+DIRS_TO_MONITOR_FOR_RELOAD = ['app/templates','app/static']
 #hack to get reload on template changes when templates not passed through render_template:
 def extra_files(extra_dirs):
     extra_files = extra_dirs[:]

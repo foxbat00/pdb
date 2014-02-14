@@ -16,6 +16,9 @@ app.register_blueprint(contentModule)
 from app.watch.views import mod as watchModule
 app.register_blueprint(watchModule)
 
+from app.browse.views import mod as browseModule
+app.register_blueprint(browseModule)
+
 app.config.from_object('config.BaseConfiguration')
 
 

@@ -16,6 +16,7 @@ from functools import wraps
 logfile = 'logs/log.txt'
 validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx"
     , ".m4v", ".mkv", ".mov", ".asf", ".mp4", ".flv"]
+invalidExts = []
 threadMax = 4
 
 
@@ -89,10 +90,13 @@ class UpdateFile():
 
 
 def validFile(fname, ext):
-    if ext.lower() in validExts   and    not re.search(r'^\.',fname):
-	return True
-    else:
+    if ext.lower() not in validExts:
+	logger.debug("file extension not valid: %s #%s#")
 	return False
+    if re.search(r'^\.',fname):
+	logger.debug("ignoring dotfile: %s #%s#")
+	return False
+    return True
     
 
 

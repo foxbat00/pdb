@@ -41,17 +41,16 @@ logger.addHandler(logoutput)
 
 
 
-# collect files that have no scene
-files_query = session.query(File).filter(_not(exists().where(SceneFile.file_id == File.id)))
-files = files_query.all()
 
-
+# preload the alias and implication rules
 alias_rules = session.query(AliasRules).filter(AliasRules.active == True).all()
-tag_implic = session.query(TagImplic).filter(TagImplic.active == True).all()
+alias_implic = session.query(AliasImplic).filter(AliasImplic).active == True).all()
 
 
 
-for file in files:
+# collect files that have no scene
+for file in session.query(File).filter(_not(exists().where(SceneFile.file_id == File.id)))
+    yield_per(200):
 
 
     # make tentative scene
@@ -87,7 +86,7 @@ for file in files:
 	    elif tr.condition_type == 'TSVECTOR':
 		match = session.query(Scene).filter(Scene.tsvector.op('@@')(func.plainto_tsquery(cond)).first()
 	    else:
-		logger.error("unrecognized tag_rule.condition_type: %s" % tr.condition_type)
+		logger.error("unrecognized alias_rule.condition_type: %s" % tr.condition_type)
 		continue
 	
 	    
@@ -116,7 +115,7 @@ for file in files:
 
 
 
-    # iterate over tag_implications 
+    # iterate over alias_implications 
 
 
 
