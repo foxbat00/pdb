@@ -48,7 +48,8 @@ CREATE TABLE scene (
     rating		int		,
     series		text		,
     series_number	int		,
-    label		text		
+    label		text		,
+    display_name	text		
 );
 
 

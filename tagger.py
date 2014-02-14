@@ -48,7 +48,7 @@ for file in session.query(File).filter(_not(exists().where(SceneFile.file_id == 
 
 
     # make tentative scene
-    scene = Scene(file.name)
+    scene = Scene(file.display_name)
     session.add(scene)
     session.flush()
     sf = SceneFile(scene.id, file.id)

@@ -66,7 +66,7 @@ class Scene(Base):
     __table__ = Table('scene', Base.metadata, autoload=True)
 
     def __init__(self, name):
-	self.name = name 
+	self.display_name = name 
 
     def __repr__(self): 
 	return "<Scene id=%d name=\"%s\">" % (self.id, self.name)

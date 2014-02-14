@@ -43,9 +43,9 @@ logger.addHandler(logoutput)
 for file in session.query(File).filter(not_(exists().where(SceneFile.file_id == File.id))).yield_per(200):
 
 
-    logger.debug("..%s" % display_name)
+    logger.debug("..%s" % file.display_name)
     # make tentative scene
-    scene = Scene(file.name)
+    scene = Scene(file.display_name)
     session.add(scene)
     session.flush()
     sf = SceneFile(scene.id, file.id)
