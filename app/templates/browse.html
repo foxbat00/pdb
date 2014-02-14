@@ -5,22 +5,18 @@
    $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
  </script>
  <script type="text/javascript">
-  $(function() {
-    $( "#search" ).autocomplete({
-      source: $.getJSON($SCRIPT_ROOT + "/_search",
-        {search: $('input[name="search"]').val()}),
-      minLength: 2, delay: 500
-
-
-source: function( request, response ) {
-    $.getJSON($SCRIPT_ROOT + "/_search_university", {
-        search: request
-    }, response);
-}
-
-
+ $(function() {
+        $( "#search" ).autocomplete({
+	    source: function( request, response ) {
+		$.getJSON($SCRIPT_ROOT + "/_search_university", {
+		    search: request
+		}, response);
+            minLength: 2,
+	    delay: 500,
+	    autofocus: true,
+	    }
+        });
     });
-  });
   </script> 
 {% block content %}
     <div class=main>

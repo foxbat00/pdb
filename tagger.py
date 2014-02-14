@@ -42,12 +42,6 @@ logger.addHandler(logoutput)
 
 
 
-# preload the alias and implication rules
-alias_rules = session.query(AliasRules).filter(AliasRules.active == True).all()
-alias_implic = session.query(AliasImplic).filter(AliasImplic).active == True).all()
-
-
-
 # collect files that have no scene
 for file in session.query(File).filter(_not(exists().where(SceneFile.file_id == File.id)))
     yield_per(200):

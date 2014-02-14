@@ -191,6 +191,7 @@ def FileScanner (fileq):
 		f = File(fsize,fhash,fname)
 		session.add(f)
 		session.flush()
+		f.display_name = fname
 		fi = FileInst(fname, path, repo, f)
 		fi.file = f.id
 		session.add(fi)
@@ -204,6 +205,10 @@ def FileScanner (fileq):
 		# mark as crawled
 		existing.last_crawled = datetime.datetime.now()
 		session.flush()
+
+		# if no display name set, set now
+		if not existing.display_name:
+		    existing.display_name = fname
 
 		# get corresponding file_insts
 		fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file == existing.id).all()

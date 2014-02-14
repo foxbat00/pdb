@@ -21,9 +21,13 @@ def browse_view():
     return render_template('browse.html', form=form)
 
 
-
 #### AJAX  ####
 
+
+@app.route('/_search')
+def ajax_search():
+    search = request.args.get('search')
+    
 
 
 
