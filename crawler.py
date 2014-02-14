@@ -10,6 +10,7 @@ from Queue import Queue
 import logging 
 from contextlib import contextmanager
 from functools import wraps
+import argparse
 
 
 # globals
@@ -40,6 +41,18 @@ logoutput.setFormatter(logging.Formatter(format))
 logger.addHandler(logoutput)
 
 #logger.setLevel(logging.INFO)
+
+
+# options parsing
+parser = argparse.ArgumentParser(description='PDB crawler')
+
+parser.add_argument('-x','--exclude', nargs='+', type=int, help='repositories to exclude from crawl, by id')
+args = parser.parse_args()
+
+excludeRepos = []
+for r in args.exclude:
+    excludeRepos.append(r)
+
 
 
 
@@ -174,6 +187,8 @@ def FileScanner (fileq):
 		logger.debug(" shortcutting")
 		fi.last_seen = datetime.datetime.now()
 		fi.deleted_on = None
+		if not f.display_name:
+		    f.display_name = fullname
 		session.flush()
 		return
 
@@ -208,7 +223,7 @@ def FileScanner (fileq):
 
 		# if no display name set, set now
 		if not existing.display_name:
-		    existing.display_name = fname
+		    existing.display_name = fullname
 
 		# get corresponding file_insts
 		fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file == existing.id).all()
@@ -301,7 +316,10 @@ logger.debug("adding repos")
 for r in rs:
     logger.debug("...enqueuing repository %s" % r)
     rid = r.id
-    repoq.put(rid)
+    if rid not in excludeRepos:
+	repoq.put(rid)
+    else:
+	logger.debug("excluding repo: %d %s" % (r.id, r.path))
 
 # FileLoaders consume repos from the repoq, scan those repos, and add files to the fileq
 logger.debug("launching FileLoaders")
