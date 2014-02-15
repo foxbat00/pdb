@@ -104,10 +104,10 @@ class UpdateFile():
 
 def validFile(fname, ext):
     if ext.lower() not in validExts:
-	logger.debug("file extension not valid: %s #%s#")
+	logger.debug("file extension not valid: %s #%s#" % (fname, ext))
 	return False
     if re.search(r'^\.',fname):
-	logger.debug("ignoring dotfile: %s #%s#")
+	logger.debug("ignoring dotfile: %s #%s#" % (fname, ext))
 	return False
     return True
     
@@ -233,12 +233,13 @@ def FileScanner (fileq):
 		# scan for deleted, mark as seen the rest
 		for q in fis:
 		    (fi,r) = q
-		    logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
-		    if not os.path.isfile(modJoin(r.path,fi.path,fi.name)):
-			fi.deleted_on = datetime.datetime.now()
-		    else:
-			fi.last_seen = datetime.datetime.now()
-		    logger.debug("done update")
+		    if r.id not in excludeRepos:
+			logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
+			if not os.path.isfile(modJoin(r.path,fi.path,fi.name)):
+			    fi.deleted_on = datetime.datetime.now()
+			else:
+			    fi.last_seen = datetime.datetime.now()
+			logger.debug("done update")
 		    
 
 		# now that all fileInst have been checked, before creating a new one, let's see if we can fix an old
@@ -247,7 +248,7 @@ def FileScanner (fileq):
 		    (fi,r) = q
 		    d = fi.deleted_on
 		    if d and d > datetime.datetime.now() - datetime.timedelta(weeks=1):
-			logdebug("      reactivating old instance")
+			logger.debug("      reactivating old instance")
 			fi,r = fis
 			fi.name = fname
 			fi.path = path
@@ -350,11 +351,11 @@ logger.info("###### crawl for new files -- complete %s #######" % datetime.datet
 for q in session.query(FileInst,Repository).join(Repository).filter(FileInst.deleted_on == None)\
 	.filter(FileInst.last_seen < datetime.datetime.now() - datetime.timedelta(days=3)).yield_per(300):
     (fi,r) = q
-    if fi and r:
+    if fi and r and r.id not in excludeRepos:
 	uf = UpdateFile(r.id, fi.id)
 	updateq.put(uf)
 
-logger.debug("qsize = %d" % updateq.qsize())
+logger.debug("update qsize = %d" % updateq.qsize())
 if not updateq.empty():
     for i in range (threadMax):
 	t = Thread(target=FileUpdater,args=(updateq,))  # requires a tuple

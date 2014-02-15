@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% block title %} Browse {% endblock %}
-<script type="text/javascript" src="/static/pdb.js"></script>
- <script type=text/javascript>
-   $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
- </script>
+ <script type="text/javascript" src="/static/pdb.js"></script>
  <script type="text/javascript">
+ $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
  $(function() {
         $( "#search" ).autocomplete({
 	    source: function( request, response ) {
