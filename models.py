@@ -14,6 +14,24 @@ from db import *
 # REQUIRES sqlalchemy >=0.9.2 to have tsvector support
 
 
+
+from sqlalchemy.sql import column
+# snippet to use in querying against only active files for jquery
+def active_files(*fields):
+    from_clause = select_from(func.active_files()).alias('active_files')
+    if not fields:
+        return select([column('display_name')]).from_clause
+    else:
+        field_list = []
+        for f in fields:
+            field_list.append(column(f))
+        return selec(field_list).from_clause
+
+
+
+###### auto reflection tables and some inits #####  
+
+
 class Repository(Base):
     __table__ = Table('repository', Base.metadata, autoload=True)
     def __repr__(self): 

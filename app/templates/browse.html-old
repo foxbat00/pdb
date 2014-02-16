@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% block title %} Browse {% endblock %}
- {#<script type="text/javascript" src="/static/pdb.js"></script>#}
+ <script type="text/javascript" src="/static/pdb.js"></script>
 {% block content %}
     <div class=main>
     <h3>Search Files</h3>
     <div class="row">
-      <div class="col-lg-6 input-group" id="searchbar">
+      <div class="col-lg-6">
+	<div class="input-group">
 	  <div class="input-group-btn">
           <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">RegEx 
 		<span class="caret"></span></button>
@@ -15,21 +16,23 @@
 		  <li><a href="#">Boolean Query</a></li>
 		  </ul>
 	  </div><!-- /btn-group -->
-	  <div class="ui-helper-clearfix" style="display:block" id="searchfield">
 	  <input type="text" class="form-control" id="search">
-	  </div>
 	  <div class="input-group-btn">
 	    <button class="btn btn-default" type="button">Find</button>
 	  </div>
-      </div><!-- col, input-group -->
+	</div><!-- input-group -->
+      </div><!-- col -->
     </div><!-- row -->
+    <div id="results">
+    <hr>
+    </div>
  <script type="text/javascript">
+ $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
     $("#search").autocomplete({
 	source: "http://localhost:5000/browse/_search",
 	minLength: 2,
-	delay: 2000, 
-	{#appendTo: "#searchbar",#}
-	{#position: { my: "left", at: "left bottom", of: $("#results") },#}
+	delay: 500, 
+	autofocus: true
     });
   </script> 
     </div><! -- main -->
