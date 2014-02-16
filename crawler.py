@@ -50,8 +50,9 @@ parser.add_argument('-x','--exclude', nargs='+', type=int, help='repositories to
 args = parser.parse_args()
 
 excludeRepos = []
-for r in args.exclude:
-    excludeRepos.append(r)
+if args.exclude:
+    for r in args.exclude:
+	excludeRepos.append(r)
 
 
 
@@ -104,10 +105,10 @@ class UpdateFile():
 
 def validFile(fname, ext):
     if ext.lower() not in validExts:
-	logger.debug("file extension not valid: %s #%s#" % (fname, ext))
+	logger.debug("file extension not valid: %s #%s#")
 	return False
     if re.search(r'^\.',fname):
-	logger.debug("ignoring dotfile: %s #%s#" % (fname, ext))
+	logger.debug("ignoring dotfile: %s #%s#")
 	return False
     return True
     
