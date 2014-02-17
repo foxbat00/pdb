@@ -8,6 +8,7 @@ from app.browse.forms import BrowseForm
 import json
 from functools import wraps
 from app.browse.decorators import xpjax_only
+import shlex
 
 
 
@@ -44,21 +45,29 @@ def lvdict(labelsvalues):
     return js
 	
 
+# replace whitespace not enclosed in quotes with % for sql searching
+def percentSeparator(str):
+    return '%'.join(['"{0}"'.format(fragment) if ' ' in fragment else fragment
+	for fragment in shlex.split(str)])
+
+
+
 
 @mod.route('/browse/', methods=('GET','POST') )
 def browse_view():
     app.logger.debug("in browse_view")
     if "X-PJAX" in request.headers:
 	app.logger.debug("xpjax detected ")
-	if "query" in request.args:
-	    query = request.args.get('query')
-	    app.logger.debug("query = #%s#" % query)
+	if "query" in request.values:
+	    rawquery = request.values.get('query')
+	    app.logger.debug("query = #%s#" % rawquery)
+	    query = percentSeparator(rawquery)
 	    max = 100
 	    afd = active_files('display_name')
 	    q = session.query(afd.c.display_name)\
 		.filter( afd.c.display_name.ilike('%'+query+'%') )
 	    rs = q.limit(max).all()
 	    count = len(q.all())
-	    return render_template('pjax/results.html', results=sfrToList(rs), count=count, max=max)
+	    return render_template('pjax/results.html', results=sfrToList(rs), count=count, max=max, query=rawquery)
     return render_template('browse.html')
 

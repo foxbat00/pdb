@@ -13,5 +13,5 @@
     </table>
 
 {% else %} 
-    <i>No results found</i>
+    <i>No results found {% if query %} for "{{query}}" {% endif %}</i>
 {% endif %}
