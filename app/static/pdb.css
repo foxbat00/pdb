@@ -30,14 +30,20 @@ body {
     text-align: left;
 }
 
+.rightj {
+    text-align: right;
+}
+
+.alignleft {
+    float:left;
+}
+
+.alignright{
+    float:right;
+}
 
 .btn-primary {
     .buttonBackground(Blue, DarkBlue);
 }
 
 
-
-
-#searchfield span {
-    display: block;
-    }

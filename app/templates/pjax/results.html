@@ -1,11 +1,11 @@
 
 {% if results %}
-    Results: 
-    (<i>{{ count }} found...
+    <h3>Results:</h3>
+    <p align=right>(<i>{{ count }} found...
     {% if count > max %}
 	{{ max }} shown
     {% endif %}
-    </i>)<BR>
+    </i>)</p>
     <table>
     {% for r in results %}
 	<tr><td>{{ r }} </td></tr>
