@@ -10,8 +10,9 @@ from models import *
 
 
 
-validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx" \
-     , ".m4v", ".mkv", ".mov", ".asf", ".mp4", ".flv"]
+validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx"
+     , ".m4v", ".mkv", ".mov", ".asf", ".mp4", ".flv", ".3gp",".asf", ".divx" ]
+
 
 # options parsing
 parser = argparse.ArgumentParser(description='PDB file-extension surveyor')
@@ -30,7 +31,7 @@ session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=eng
 def scanError(e):
     raise e
 
-invalid = {}
+tokendict = {}
 rs = session.query(Repository).all()
 
 for r in rs:
@@ -49,14 +50,15 @@ for r in rs:
     for root, dirs, files in os.walk(rpath,**walkargs):
 	for f in files:
 	    fpart,ext = os.path.splitext(f)
-	    if ext.lower() in invalid:
-		invalid[ext] += 1
-	    else:
-		invalid[ext] = 1
-	    continue
+	    tokens = re.findall(r'\w+',fpart)
+	    for t in tokens:
+		if t.lower() in tokendict:
+		    tokendict[t.lower()] += 1
+		else:
+		    tokendict[t.lower()] = 1
+		continue
 
-
-for v,k in sorted( ((v,k) for k,v in invalid.iteritems()), reverse=True):
+for v,k in sorted( ((v,k) for k,v in tokendict.iteritems()), reverse=True):
     print "%s:  %d" % (k, v)
 
 
