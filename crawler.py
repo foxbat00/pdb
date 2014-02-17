@@ -279,7 +279,7 @@ def FileScanner (fileq):
 def FileUpdater(updateq):
 
     @threaded
-    def updateFileInst(fi,r):
+    def updateFileInst(fiid,rid):
 	with transaction_context() as session:
 	    fi = session.query(FileInst).filter(FileInst.id == str(fiid)).first()
 	    r = session.query(Repository).filter(Repository.id == str(rid)).first()
