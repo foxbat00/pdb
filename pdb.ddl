@@ -43,7 +43,7 @@ CREATE TABLE file_inst (
 
 CREATE TABLE scene (
     id			serial		PRIMARY KEY,
-    wordbag		text		NOT NULL,
+    wordbag		text		NOT NULL DEFAULT '',
     tsv			tsvector	,
     rating		int		,
     series		text		,
@@ -239,10 +239,10 @@ CREATE FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
 	    $B$ INTO sceneid USING  NEW.id;
 	ELSIF TG_TABLE_NAME = 'file_inst' THEN
 	    EXECUTE $B$
-		SELECT distinct scene_file.scene_id FROM file_inst
-		JOIN file ON (file.id = file_inst.file)
-		JOIN scene_file ON (scene_file.file_id = file.id)
-		WHERE file_inst.id = $1
+		SELECT ARRAY_AGG(distinct scene_file.scene_id) FROM file_inst
+		LEFT JOIN file ON (file.id = file_inst.file)
+		LEFT JOIN scene_file ON (scene_file.file_id = file.id)
+		WHERE file_inst.id = $1 AND file_inst.id IS NOT NULL
 	    $B$ INTO sceneid USING  NEW.id;
 	END IF;
 
@@ -257,7 +257,7 @@ CREATE FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
 		    JOIN scene_file ON (scene_file.scene_id = scene.id)
 		    JOIN file ON (scene_file.file_id = file.id)
 		    JOIN file_inst ON (file_inst.file = file.id)
-		    GROUP BY scene
+		    GROUP BY scene.id, scene.wordbag
 		    HAVING scene.id = $1
 	    $B$  INTO words USING scene;
 	    EXECUTE $B$
