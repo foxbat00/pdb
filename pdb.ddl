@@ -49,7 +49,8 @@ CREATE TABLE scene (
     series		text		,
     series_number	int		,
     label		text		,
-    display_name	text		
+    display_name	text		,
+    confirmed		boolean		NOT NULL DEFAULT 'f'
 );
 
 
@@ -145,7 +146,7 @@ CREATE TABLE alias_tag (
 
 
 
-CREATE TABLE alias_rules (
+CREATE TABLE alias_rule (
     id			serial		PRIMARY KEY,
     condition		text		NOT NULL,
     condition_type	VARCHAR(10)	NOT NULL,
@@ -156,9 +157,9 @@ CREATE TABLE alias_rules (
 );
 
 
-CREATE TABLE alias_implications (
+CREATE TABLE facet_implication (
     id			serial		PRIMARY KEY,
-    predicate		int		NOT NULL,
+    predicate		int		NOT NULL,  
     predicate_type	varchar(20)	NOT NULL,
     target		int		NOT NULL,
     target_type		varchar(20)	NOT NULL,

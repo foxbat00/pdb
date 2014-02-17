@@ -15,6 +15,8 @@ import models
 from models import *
 from util import *
 
+import shlex
+
 
 from sqlalchemy.sql import column
 os.environ['PYTHONINSPECT'] = 'True'

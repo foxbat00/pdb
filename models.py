@@ -124,9 +124,10 @@ class Series(Base):
 class SceneFile(Base):
     __table__ = Table('scene_file', Base.metadata, autoload=True)
 
-    def __init__(self, scene_id, file_id):
+    def __init__(self, scene_id, file_id, tentative=True):
 	self.scene_id = scene_id 
 	self.file_id = file_id 
+	self.tentative = tentative
 
 class SceneTag(Base):
     __table__ = Table('scene_tag', Base.metadata, autoload=True)
@@ -151,11 +152,11 @@ class AliasSeries(Base):
  
 # tagging
 
-class AliasRules(Base):
-    __table__ = Table('alias_rules', Base.metadata, autoload=True)
+class AliasRule(Base):
+    __table__ = Table('alias_rule', Base.metadata, autoload=True)
 
-class AliasImplic(Base):
-    __table__ = Table('tag_implications', Base.metadata, autoload=True)
+class FacetImplic(Base):
+    __table__ = Table('facet_implication', Base.metadata, autoload=True)
 
 
 
