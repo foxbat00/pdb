@@ -170,6 +170,18 @@ def FileScanner (fileq):
 
     @threaded
     def considerFile(scanfile):
+
+	def createScene(file):
+	    if not session.query(SceneFile).filter(SceneFile.file_id == file.id).first():
+		scene = Scene(file.display_name)
+		session.add(scene)
+		session.flush()
+		sf = SceneFile(scene.id, file.id)
+		session.add(sf)
+		session.commit()
+
+
+
 	with transaction_context() as session:
 	    repo = session.query(Repository).filter(Repository.id == str(scanfile.repo)).first()
 	    path = scanfile.relpath
@@ -190,7 +202,8 @@ def FileScanner (fileq):
 		fi.deleted_on = None
 		if not f.display_name:
 		    f.display_name = fullname
-		session.flush()
+		createScene(f)
+		session.commit()
 		return
 
 
@@ -212,6 +225,7 @@ def FileScanner (fileq):
 		fi.file = f.id
 		session.add(fi)
 		session.flush()
+		createScene(f)
 		return
 	    
 	    else:
@@ -225,6 +239,9 @@ def FileScanner (fileq):
 		# if no display name set, set now
 		if not existing.display_name:
 		    existing.display_name = fullname
+
+		# if no scene exists, create
+		createScene(existing)
 
 		# get corresponding file_insts
 		fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file == existing.id).all()
