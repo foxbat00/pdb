@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %} Edit Tags {% endblock %}
+{% block content %}
+    <div class=main>
+    <h3>Edit Tags</h3>
+    <div class="row">
+      <div class="col-lg-6 input-group" id="searchbar">
+	  {% if tags %} 
+	    <table>
+	    {% for t in tags %}
+	      <tr><td>{{ t }} <
+		
+	    {% endfor %}
+	  {% endif %} 
+
+
+
+
+
+	  <div class="input-group-btn">
+	  <form action="?" method="POST" data-pjax>
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">regex
+		<span class="caret"></span></button>
+		<ul class="dropdown-menu">
+		  <li><a href="#">ilike</a></li>
+		  <li><a href="#">regex</a></li>
+		  </ul>
+	  </div><!-- /btn-group -->
+	  <div class="ui-helper-clearfix" style="display:block" id="queryfield">
+	  <input type="text" class="form-control" id="queryfield" name="query">
+	  </div>
+	  <div class="input-group-btn">
+	    <button class="btn btn-primary" type="button">Find</button>
+	  </form>
+	  </div>
+      </div><!-- col, input-group -->
+    </div><!-- row -->
+    <hr>
+    <div id="results">
+    {% include 'pjax/results.html' %}
+    </div>
+ <script type="text/javascript">
+
+$(document).on('submit', 'form[data-pjax]', function(event) {
+  $.pjax.submit(event, '#results');
+});
+
+ </script> 
+    </div><! -- main -->
+{% endblock %}
+
+
+
+
+

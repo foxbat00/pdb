@@ -16,4 +16,5 @@ def extra_files(extra_dirs):
 		    extra_files.append(filename)
     return extra_files
 
-app.run(debug=True, extra_files = extra_files(DIRS_TO_MONITOR_FOR_RELOAD))
+if __name__ == '__main__':
+    app.run(debug=True, extra_files = extra_files(DIRS_TO_MONITOR_FOR_RELOAD))

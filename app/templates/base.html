@@ -1,3 +1,4 @@
+{% if "X-PJAX" not in request.headers %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -36,20 +37,20 @@
 	    <span class="icon-bar"></span>
 	    <span class="icon-bar"></span>
 	  </button>
-	  <a class="navbar-brand" href="/">PDB</a>
+	  <a pjax class="navbar-brand" href="/">PDB</a>
 	</div>
 
 	<!-- Collect the nav links, forms, and other content for toggling -->
 	<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 	  <ul class="nav navbar-nav">
-	    <li class="active" id="navbar-search"><a href="/browse">Search</a></li>
+	    <li class="active" id="navbar-search"><a pjax href="/browse">Search</a></li>
 	    <li class="dropdown">
 	      <a href="#" class="dropdown-toggle" data-toggle="dropdown">Facets <b class="caret"></b></a>
 	      <ul class="dropdown-menu">
-		<li><a href="/edit/tags">Tags</a></li>
-		<li><a href="/edit/stars">Stars</a></li>
-		<li><a href="/edit/labels">Labels</a></li>
-		<li><a href="/edit/series">Series</a></li>
+		<li><a pjax href="/edit/tags">Tags</a></li>
+		<li><a pjax href="/edit/stars">Stars</a></li>
+		<li><a pjax href="/edit/labels">Labels</a></li>
+		<li><a pjax href="/edit/series">Series</a></li>
 	      </ul>
 	    </li>
 	  </ul>
@@ -69,8 +70,10 @@
           </div>
         {% endfor %}
         <div class="content">
+{% endif %}
           {% block content %}
           {% endblock %}
+{% if "X-PJAX" not in request.headers %}
         </div>
 
         <hr>
@@ -85,4 +88,9 @@
     {% block js_footer %}
     {% endblock %}
   </body>
+  <script type="text/javascript">
+    $(document).pjax('a[pjax]', '#content')
+    });
+ </script> 
 </html>
+{% endif %}
