@@ -1,0 +1,17 @@
+
+{% if results %}
+    Results: 
+    (<i>{{ count }} found...
+    {% if count > max %}
+	{{ max }} shown
+    {% endif %}
+    </i>)<BR>
+    <table>
+    {% for r in results %}
+	<tr><td>{{ r }} </td></tr>
+    {% endfor %}
+    </table>
+
+{% else %} 
+    <i>No results found</i>
+{% endif %}

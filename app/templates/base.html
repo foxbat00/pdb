@@ -13,10 +13,10 @@
     <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.1/jquery-ui.min.js"></script>
     <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+    <script src="{{ url_for('static',filename='jquery.pjax.js') }}"></script>
 
     <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.min.css" rel="stylesheet">
     <link href="{{ url_for('static',filename='pdb.css') }}" rel="stylesheet" type="text/css">
-    </style>
 
     <link rel="shortcut icon" href="{{ url_for('static', filename='ico/favicon.ico') }}">
     {% endblock %}

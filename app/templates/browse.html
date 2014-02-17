@@ -1,37 +1,39 @@
 {% extends "base.html" %}
 {% block title %} Browse {% endblock %}
- {#<script type="text/javascript" src="/static/pdb.js"></script>#}
 {% block content %}
     <div class=main>
     <h3>Search Files</h3>
     <div class="row">
       <div class="col-lg-6 input-group" id="searchbar">
 	  <div class="input-group-btn">
-          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">RegEx 
+	  <form action="?" method="GET" data-pjax>
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">regex
 		<span class="caret"></span></button>
 		<ul class="dropdown-menu">
-		  <li><a href="#">Regex</a></li>
-		  <li><a href="#">Words</a></li>
-		  <li><a href="#">Boolean Query</a></li>
+		  <li><a href="#">ilike</a></li>
+		  <li><a href="#">regex</a></li>
 		  </ul>
 	  </div><!-- /btn-group -->
-	  <div class="ui-helper-clearfix" style="display:block" id="searchfield">
-	  <input type="text" class="form-control" id="search">
+	  <div class="ui-helper-clearfix" style="display:block" id="queryfield">
+	  <input type="text" class="form-control" id="queryfield" name="query">
 	  </div>
 	  <div class="input-group-btn">
 	    <button class="btn btn-default" type="button">Find</button>
+	  </form>
 	  </div>
       </div><!-- col, input-group -->
     </div><!-- row -->
+    <hr>
+    <div id="results">
+    {% include 'pjax/results.html' %}
+    </div>
  <script type="text/javascript">
-    $("#search").autocomplete({
-	source: "http://localhost:5000/browse/_search",
-	minLength: 2,
-	delay: 2000, 
-	{#appendTo: "#searchbar",#}
-	{#position: { my: "left", at: "left bottom", of: $("#results") },#}
-    });
-  </script> 
+
+$(document).on('submit', 'form[data-pjax]', function(event) {
+  $.pjax.submit(event, '#results');
+});
+
+ </script> 
     </div><! -- main -->
 {% endblock %}
 

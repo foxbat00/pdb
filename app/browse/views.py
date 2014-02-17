@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, render_template, flash, redirect, session, url_for, request, jsonify
+from flask import Blueprint, Response, render_template, flash, redirect, session, url_for, request, jsonify, abort
 from app import app
 from db import session, Base
 from models import *
@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import *
 from app.browse.forms import BrowseForm
 import json
+from functools import wraps
 
 
 
@@ -43,16 +44,49 @@ def lvdict(labelsvalues):
 	
 
 
+#### Decorator for view functions to check for PJAX header
+  ## returns 403 error if PJAX header not detected
 
-@mod.route('/browse/', methods=('GET',))
+def xpjax_only(view_function):
+    @wraps(view_function)
+    # the new, post-decoration function. Note *args and **kwargs here.
+    def decorated_function(*args, **kwargs):
+	if "X-PJAX" in request.headers:
+            return view_function(*args, **kwargs)
+        else:
+	    app.logger.error('ERROR:  non-PJAX request to PJAX route')
+            abort(403)
+    return decorated_function
+
+
+@mod.route('/browse/', methods=('GET',) )
 def browse_view():
-    form = BrowseForm(request.form)
-    return render_template('browse.html', form=form)
+    return render_template('browse.html')
+
+
+#### PJAX ####
+
+@mod.route('/browse/', methods=('GET','POST') )
+@xpjax_only		    # route must be outermost to work correctly
+def search_query(query):
+    max = 100
+    query = request.args.get('query')
+    afd = active_files('display_name')
+    q = session.query(afd.c.display_name)\
+	.filter( afd.c.display_name.ilike('%'+query+'%') )
+    rs = q.limit(max).all()
+    count = len(q.all())
+    return render_template('pjax/results.html', results=sfrToList(rs), count=count, max=max)
+
+
+
+
+
 
 
 #### AJAX  ####
 
-
+"""
 @mod.route('/browse/_search')
 def ajax_search():
     search = request.args.get('term')
@@ -67,7 +101,7 @@ def ajax_search():
     else:
 	return None
 
-
+"""
     
 
 

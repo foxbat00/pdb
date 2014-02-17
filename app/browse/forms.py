@@ -7,4 +7,4 @@ from app import app
 
 
 class BrowseForm(Form):
-    test = 'Ok'
+    pass
