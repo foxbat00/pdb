@@ -96,26 +96,37 @@ class Tag(Base):
     __table__ = Table('tag', Base.metadata, autoload=True)
     def __repr__(self): 
 	return "<Tag id=%d name=\"%s\">" % (self.id, self.name)
+    def __init__(self, name):
+	self.name = name 
 
 class Star(Base):
     __table__ = Table('star', Base.metadata, autoload=True)
     def __repr__(self): 
 	return "<Star id=%d name=\"%s\">" % (self.id, self.name)
+    def __init__(self, name):
+	self.name = name 
+	self.gender='f'
 
 class Label(Base):
     __table__ = Table('label', Base.metadata, autoload=True)
     def __repr__(self): 
 	return "<Label id=%d name=\"%s\">" % (self.id, self.name)
+    def __init__(self, name):
+	self.name = name 
 
 class Alias(Base):
     __table__ = Table('alias', Base.metadata, autoload=True)
     def __repr__(self): 
 	return "<Alias id=%d name=\"%s\">" % (self.id, self.name)
+    def __init__(self, name):
+	self.name = name 
 
 class Series(Base):
     __table__ = Table('series', Base.metadata, autoload=True)
     def __repr__(self): 
 	return "<Series id=%d name=\"%s\">" % (self.id, self.name)
+    def __init__(self, name):
+	self.name = name 
 
 
 
@@ -132,21 +143,50 @@ class SceneFile(Base):
 class SceneTag(Base):
     __table__ = Table('scene_tag', Base.metadata, autoload=True)
 
-    def __init__(self, scene_id, tag_id):
+    def __init__(self, scene_id, tag_id, tentative=True):
 	self.scene_id = scene_id 
 	self.tag_id = tag_id 
+	self.tentative = tentative
 
 class SceneStar(Base):
     __table__ = Table('scene_star', Base.metadata, autoload=True)
 
+    def __init__(self, scene_id, tag_id, tentative=True):
+	self.scene_id = scene_id 
+	self.tag_id = tag_id 
+	self.tentative = tentative
+
+
+
+
+
+
 class AliasStar(Base):
     __table__ = Table('alias_star', Base.metadata, autoload=True)
+
+    def __init__(self, alias_id, star_id, tentative=True):
+	self.alias_id = alias_id
+	self.star_id = star_id
+	self.tentative = tentative
+
 
 class AliasLabel(Base):
     __table__ = Table('alias_label', Base.metadata, autoload=True)
 
+    def __init__(self, alias_id, label_id, tentative=True):
+	self.alias_id = alias_id
+	self.label_id = label_id
+	self.tentative = tentative
+
+
 class AliasSeries(Base):
     __table__ = Table('alias_series', Base.metadata, autoload=True)
+
+    def __init__(self, alias_id, series_id, tentative=True):
+	self.alias_id = alias_id
+	self.series_id = series_id
+	self.tentative = tentative
+
 
 
  

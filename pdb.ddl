@@ -54,16 +54,18 @@ CREATE TABLE scene (
 );
 
 
+-- no scene_label or scene_series since scene cannot belong to more than 1 of either
+
 
 CREATE TABLE tag (
     id			serial		PRIMARY KEY,
-    name		varchar(20)	NOT NULL,
+    name		varchar(20)	NOT NULL UNIQUE,
     restricted		boolean		NOT NULL
 );
 
 CREATE TABLE star (
     id			serial		PRIMARY KEY,
-    name		text		NOT NULL,
+    name		text		NOT NULL UNIQUE,
     gender		varchar(3)	NOT NULL
 );
 
@@ -95,17 +97,17 @@ CREATE TABLE scene_star (
 
 CREATE TABLE alias (
     id			serial		PRIMARY KEY,
-    name		text		NOT NULL
+    name		text		NOT NULL UNIQUE
 );
 
 CREATE TABLE label (
     id			serial		PRIMARY KEY,
-    name		name		NOT NULL
+    name		name		NOT NULL UNIQUE
 );
 
 CREATE TABLE series (
     id			serial		PRIMARY KEY,
-    name		text		NOT NULL
+    name		text		NOT NULL UNIQUE
 );
 
 CREATE TABLE alias_star (
@@ -153,7 +155,8 @@ CREATE TABLE alias_rule (
     alias_id		int		NOT NULL REFERENCES alias,
     active		boolean		NOT NULL DEFAULT 't',
     exclude		boolean		NOT NULL DEFAULT 'f',
-    case_sensitive	boolean		NOT NULL DEFAULT 'f'
+    case_sensitive	boolean		NOT NULL DEFAULT 'f',
+    CONSTRAINT UNIQUE(condition, condition_type, alias_id)
 );
 
 
@@ -164,12 +167,14 @@ CREATE TABLE facet_implication (
     target		int		NOT NULL,
     target_type		varchar(20)	NOT NULL,
     operator		varchar(5)	NOT NULL,
-    active		boolean		NOT NULL DEFAULT 't'
+    active		boolean		NOT NULL DEFAULT 't',
+    CONSTRAINT UNIQUE(predicate, predicate_type, target, target_type, operator)
 );
 
 
 --------------------
 
+--  needed for below
     
 CREATE OR REPLACE FUNCTION concat_tsvectors(tsv1 tsvector, tsv2 tsvector)
 RETURNS tsvector AS $$
@@ -213,14 +218,52 @@ $$  LANGUAGE sql;   --plpgsql;
 
 
 
+-- get the words for a scene
 
 CREATE FUNCTION get_words_for_scene (int) RETURNS TEXT AS $A$
     SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
 	|| ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag
 	FROM scene
+	JOIN scene_file ON (scene_file.scene_id = scene.id)
+	JOIN file ON (file.id = scene_file.file_id)
+	JOIN file_inst ON (file_inst.file = file.id)
 	WHERE scene.id = $1
 	GROUP BY scene.wordbag
 $A$ LANGUAGE sql;
+
+
+
+-- assign a display name from the agg wordbag if none set
+
+CREATE FUNCTION update_scene_display_name () RETURNS TRIGGER AS $A$
+    DECLARE 
+	words text;
+    BEGIN 
+	EXECUTE $B$
+	    SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
+		|| ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag
+		FROM scene
+		JOIN scene_file ON (scene_file.scene_id = scene.id)
+		JOIN file ON (file.id = scene_file.file_id)
+		JOIN file_inst ON (file_inst.file = file.id)
+		WHERE scene.id = $1
+		GROUP BY scene.wordbag
+	$B$ INTO words USING NEW.id;
+	IF NEW.display_name IS NULL OR  NEW.display_name = '' THEN
+	    NEW.display_name := words;
+	END IF;
+	return NEW;
+    END;
+$A$ LANGUAGE plpgsql;
+
+
+
+    -- consider dropping the update once all scenes have a display_name
+
+CREATE TRIGGER update_scene_display_name AFTER 
+    INSERT OR UPDATE ON scene 
+FOR EACH ROW EXECUTE PROCEDURE update_scene_display_name();
+
     
 
 CREATE FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$

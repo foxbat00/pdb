@@ -99,7 +99,7 @@ def addSceneAssociation(table_name,target_id, scene_id)
     col = table_name.lower()+'_id' 
     existing = session.query(table).filter(table.scene_id == scene_id, table.col == target_id) .first()
     if not existing:
-	newrec = table(scene_id, target_id)
+	newrec = table(scene_id, target_id, tentative=True)
 	session.add(newrec)
 	session.flush()
 	addImplied(table_name, target_id, scene_id)
