@@ -198,6 +198,13 @@ class AliasRule(Base):
 class FacetImplic(Base):
     __table__ = Table('facet_implication', Base.metadata, autoload=True)
 
+    def __init__(self, predicate, predicate_type, target, target_type, operator="+"):
+	self.predicate = predicate
+	self.predicate_type = predicate_type
+	self.target = target
+	self.target_type = target_type
+	self.operator = operator
+
 
 
 

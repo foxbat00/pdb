@@ -151,15 +151,16 @@ with open(loadfile, 'rU') as lf:
 	# NOT implied stuff!!
 
 
+    # loop for implications 
+    for (k,v) in implic_dct:
+	# k is the facet (tag); v is the facet-value (xyz)
+	tar = session.query(getattr(model, k)).filter(table.name == v).first()
+	if not tar:
+	    logger.debug("ERROR:  not recognized:  %s:%s on line %s" % (v,k, line)
+	    sys.exit()
+	facet_imp = FacetImplic(existing.id, facet_type, tar.id, k)
+	session.add(facet_impl)
+	session.flush()
 
-
-    # loop for alias_rule
-    ar = session.query(AliasRule).filter(
-    
-	# check for existing
-
-
-    # loop for implications
-
-
+    # the tagger does the actual work of applying the implications
 
