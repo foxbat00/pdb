@@ -117,7 +117,9 @@ with open(loadfile, 'rU') as lf:
 	alias_list = [al for al in al if al]  # remove empty strings from trailing commas
 
 
-	    # facet_type, name, implic_dct, alias_list
+	# facet_type, name, implic_dct, alias_list
+	logger.debug("facet_type = %s, name = %s, implic_dct = %s, alias_list = %s" \
+	    % (facet_type, name, implic_dct, alias_list) )
 
 
 	# check/create the necessary facets in case they don't exist yet
@@ -126,6 +128,7 @@ with open(loadfile, 'rU') as lf:
 	table  = getattr(models, facet_type)
 	existing = session.query(table).filter(table.name == name).first()
 	if not existing:
+	    logger.debug("existing not found: %s %s" % (facet_type, name))
 	    existing = table(name)
 	    session.add(existing)
 	    session.flush()
@@ -134,15 +137,17 @@ with open(loadfile, 'rU') as lf:
 	for a in alias_list:
 	    alias = session.query(Alias).filter(Alias.name == a).first()
 	    if not alias:
+		logger.debug("alias not found: %s" % a)
 		alias = Alias(a)
 		session.add(alias)
 		session.flush()
 	    
 	    # linkage
-	    ltable  = getattr(models, "Alias"+facet_type)
-	    link = session.query(ltable).filter(ltable.alias_id == alias.id, getattr(ltable,facet_type+"_id")\
-		.first()
+	    ltable = getattr(models, "Alias"+facet_type)
+	    link = session.query(ltable).filter(ltable.alias_id == alias.id \
+		, getattr(ltable,facet_type+"_id") == existing.id ).first()
 	    if not link:
+		logger.debug("alias_%s not found: %s" % (facet_type, alias.id))
 		link = ltable(alias.id, existing.id)
 		session.add(new)
 		session.flush()
