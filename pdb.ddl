@@ -97,7 +97,8 @@ CREATE TABLE scene_star (
 
 CREATE TABLE alias (
     id			serial		PRIMARY KEY,
-    name		text		NOT NULL UNIQUE
+    name		text		NOT NULL UNIQUE,
+    active		boolean		NOT NULL DEFAULT 't'
 );
 
 CREATE TABLE label (
@@ -147,7 +148,7 @@ CREATE TABLE alias_tag (
  -- TODO constrain alias table to be referenced in one of the mapping tables
 
 
-
+/*
 CREATE TABLE alias_rule (
     id			serial		PRIMARY KEY,
     condition		text		NOT NULL,
@@ -158,11 +159,11 @@ CREATE TABLE alias_rule (
     case_sensitive	boolean		NOT NULL DEFAULT 'f',
     CONSTRAINT UNIQUE(condition, condition_type, alias_id)
 );
-
+*/
 
 CREATE TABLE facet_implication (
     id			serial		PRIMARY KEY,
-    predicate		int		NOT NULL,  
+    predicate		int		NOT NULL,   
     predicate_type	varchar(20)	NOT NULL,
     target		int		NOT NULL,
     target_type		varchar(20)	NOT NULL,

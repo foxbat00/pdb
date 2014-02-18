@@ -117,6 +117,16 @@ def addImplied(table_name,target_id, scene_id)
 	addAssociation(i.target_type, i.target, scene_id)
 
 
+def permute(string):
+    ret = []
+    ret.append(string)
+    ret.append(re.sub(r'\s','',string))   # remove spaces
+    ret.append(re.sub(r'\W',' ',string))  # change non-alphanums to space (to cause splitting)
+
+    return ret
+    
+
+
 
 #### make scenes if needed
 
@@ -139,49 +149,61 @@ session.commit()
 
 #### collect the scenes and tag them
 
-alias_rules = session.query(AliasRule).filter(active == True).all()
+aliases = session.query(Alias).filter(active == True).all()
 
 for scene in session.query(Scene).filter(Scene.confirmed != True).all()
     agg_wordbag = session.query(func.get_words_for_scene(scene.id)).first()
     mulched_wordbag = mulch(wordbag)
 
-    # iterate over alias_rules
-    for a in alias_rules:
+    # iterate over aliases
+    for a in aliases:
 
 	# for each potential target of the alias
 	for tb in ['AliasTag', 'AliasStar', 'AliasLabel', 'AliasSeries']:
 	    table = getattr(models,tb)    # requires import models, not from models import...
 
 	    # get the potential targets for this alias
-	    targets = session.query(table).filter(table.alias_id == a.alias_id).all()
+	    targets = session.query(table).filter(table.alias_id == a.id).all()
 	    if not targets:
 		continue
 
-	    cond = a.condition
-	    match = None      # just needs to return non-None value if matched
-	    if a.condition_type == 'WORDS':
-		match = wordmatch(a.condition, mulched_wordbag)
-	    elif a.condition_type == 'REGEX':
-		flags = None
-		if not a.case_sensitive:
-		    flags = re.I
-		match = re.search(a.condition, wordbag, flags)
-	    elif tr.condition_type == 'TSVECTOR':
-		match = session.query(Scene).filter(Scene.tsvector.op('@@')(func.plainto_tsquery(a.condition)).first()
-	    else:
-		logger.error("unrecognized alias_rule.condition_type: %s" % tr.condition_type)
-		continue
-	
+
+	    # generate list of permutations
+	    cond_list = permute(a.name)
+
+
+	    # test each condition
+	    for cond in cond_list:
+
+		match = None      # just needs to return non-None value if matched
+		if a.condition_type == 'WORDS':
+		    match = wordmatch(a.condition, mulched_wordbag)
+		elif a.condition_type == 'REGEX':
+		    flags = None
+		    if not a.case_sensitive:
+			flags = re.I
+		    match = re.search(a.condition, wordbag, flags)
+		elif tr.condition_type == 'TSVECTOR':
+		    match = session.query(Scene).filter(Scene.tsvector.op('@@')(func.plainto_tsquery(a.condition))\
+			.first()
+		else:
+		    logger.error("unrecognized alias_rule.condition_type: %s" % tr.condition_type)
+		    continue
 	    
+		
 
-	    # not > and > or
-	    if match and not a.exclude   or    not match and a.exclude:
-		# add the association between the target and the scene
-		for t in targets:  
-		    # need to lookup the tag/star/label/series id from the Alias* table+'_id'
-		    base = re.sub('^Alias', '', tb)
-		    target_id = getattr(t, base.lower()+'_id')
-		    addSceneAssociation(base,target_id, scene.id)
+		# not > and > or
+		if match and not a.exclude   or    not match and a.exclude:
+		    # add the association between the target and the scene
+		    for t in targets:  
+			# need to lookup the tag/star/label/series id from the Alias* table+'_id'
+			base = re.sub('^Alias', '', tb)
+			target_id = getattr(t, base.lower()+'_id')
+			addSceneAssociation(base,target_id, scene.id)
 
-		    
+		    # we've matched this variation of the condition for this alias, let's stop
+		    break
+
+
+			
 
