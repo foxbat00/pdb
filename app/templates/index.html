@@ -2,5 +2,10 @@
 {% block title %} - Home{% endblock %}
 {% block content %}
 {% from "forms/macros.html" import render_field %}
-    <p> Click <a href="/watch/">here</a> to continue</p>
+    {{stats['total_file_inst']}} file instances, {{stats['total_file']}} files
+    , {{stats['total_scene']}} scenes, and {{stats['total_star']}} 
+    stars in the database!
+    <br>
+    <hr>
+    <p> Click <a href="/browse/">here</a> to continue</p>
 {% endblock %}

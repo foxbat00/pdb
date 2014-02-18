@@ -40,13 +40,13 @@ logger.addHandler(logoutput)
 
 # options parsing
 parser = argparse.ArgumentParser(description='PDB crawler')
-parser.add_argument('-f', type=str, help='File to load from')
+parser.add_argument('-f', type=str, required=True, help='File to load from')
 args = parser.parse_args()
 loadfile = args.f
 if not loadfile:
     logger.debug("No loadfile")
 if not os.path.isfile(loadfile):
-    logger.debug("loadfile not found: %s" loadfile)
+    logger.debug("loadfile not found: %s" % loadfile)
 
 
 
@@ -67,8 +67,8 @@ def mulch(string):
 # iterate pairwise through a list  "s -> (s0,s1), (s1,s2), (s2, s3), ..."
 def pairwise(iterable):
         a, b = tee(iterable)
-	    next(b, None)
-	        return izip(a, b)
+	next(b, None)
+	return izip(a, b)
 
 # if small is a subsequence of big, returns (start, end+1) of sequence occurence
 def contains(small, big):
@@ -84,14 +84,18 @@ def contains(small, big):
 
 
 with open(loadfile, 'rU') as lf:
-    for line in <lf>:
-	if re.search(r'^#',line) or re.search(r'^\s+$',line):
+    for line in lf.readlines():
+
+	# elimiate comments
+	line = re.sub(r'#.*$','',line)
+	# if empty, skip
+	if re.search(r'^\s+$',line):
 	    continue
 
 	mo = re.match(r'^\s*(\w+)\s+([\w-]+)\s+\[\s*([^\]]*)\s*\]\s+\[\s*([^\]]*)\s*\]\s*', str)
 	res = []
-	if not mo or len(mo.groups()) < 5:
-	    logger.debug("MALFORMED RULE: %s" % line
+	if not mo or len( mo.groups() ) < 5:
+	    logger.debug("MALFORMED RULE: %s" % line)
 	    sys.exit()
 
 
@@ -161,7 +165,7 @@ with open(loadfile, 'rU') as lf:
 	# k is the facet (tag); v is the facet-value (xyz)
 	tar = session.query(getattr(model, k)).filter(table.name == v).first()
 	if not tar:
-	    logger.debug("ERROR:  not recognized:  %s:%s on line %s" % (v,k, line)
+	    logger.debug("ERROR:  not recognized:  %s:%s on line %s" % (v,k, line))
 	    sys.exit()
 	facet_imp = FacetImplic(existing.id, facet_type, tar.id, k)
 	session.add(facet_impl)

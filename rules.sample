@@ -1,0 +1,32 @@
+
+
+# Single quotes auto turned into double
+#i a name must have no spaces or be quote-enclosed
+# the alias list is comma separated
+#    the alias term is split by non-alpha characters 
+#    multiple terms between commas are treated as being required in sequence
+#    the name of the facet (tag, star, etc) is automatically an alias
+
+
+# facet		name		    [implied]	[alias, alias, ...]  (includes name automatically, trailing comma irrelevant)
+
+
+
+tag		comedy		    []		 []
+tag		action		    []		[]
+tag		sci-fi		    []		[]
+tag		hit		    []		[]
+tag		spy		    [tag:action]		[soviet, secret agent]
+
+
+label		"George Lucas"	    [tag:hit]  []
+
+series		"Star Wars"         [label:"George Lucas", tag:hit]   [jedi, empire]
+series		"Indiana Jones"	    [label:"George Lucas", tag:hit]	
+
+
+
+
+star		"Harrison Ford"			    []			[]
+star		"Jet Li"		    [tag:action]	[]
+star		"Arnold Schwartznegger"		[tag:action]	    [terminator, total recall]

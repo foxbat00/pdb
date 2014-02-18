@@ -4,9 +4,6 @@ import os
 from config import *
 
 
-
-
-
 app = Flask(__name__) #create our application object
 
 
@@ -21,6 +18,8 @@ app.register_blueprint(browseModule)
 
 app.config.from_object('config.BaseConfiguration')
 
+
+from models import *
 
 #hack to get reload on template changes when templates not passed through render_template:
 def extra_files(extradirs):
@@ -46,7 +45,13 @@ def favicon():
 
 @app.route("/")
 def index():
-    return render_template('index.html')
+    stats = {}
+    stats['total_file_inst'] =  "{:,}".format(int(session.query(FileInst).count() ))
+    stats['total_file'] =	"{:,}".format(int(session.query(File).count() ))
+    stats['total_scene'] =	"{:,}".format(int(session.query(Scene).count() ))
+    stats['total_star'] =	"{:,}".format(int(session.query(Star).count()  ))
+    stats['total_series'] =	"{:,}".format(int(session.query(Series).count()  ))
+    return render_template('index.html', stats=stats)
 
 
 @app.errorhandler(404)
