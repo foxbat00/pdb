@@ -92,8 +92,7 @@ with open(loadfile, 'rU') as lf:
 	if re.search(r'^\s+$',line):
 	    continue
 
-	mo = re.match(r'^\s*(\w+)\s+([\S-]+)\s+\[\s*([^\]]*)\s*\]\s+\[\s*([^\]]*)\s*\]\s*$', line)
-	res = []
+	mo = re.match(r'^\s*(\w+)\s+((["\'])(?:(?=(\\?))\4.)*?\3|((\S+)))\s+\[\s*([^\]]*)\s*\]\s+\[\s*([^\]]*)\s*\]\s*$', line)
 	if not mo or len( mo.groups() ) < 4:
 	    logger.debug("MALFORMED RULE: %s" % line)
 	    sys.exit()
@@ -101,11 +100,11 @@ with open(loadfile, 'rU') as lf:
 
 	facet_type = mo.group(1)
 	name = mo.group(2)
-	implic = mo.group(3)
-	aliases = mo.group(4)
+	implic = mo.group(7)
+	aliases = mo.group(8)
 	
-	# remove enclosing quotes
-	name = name.strip('\'"')
+	# remove enclosing quotes, extra space
+	name = name.strip('\'" ')
 
 	    
 	#clean up implic
@@ -115,14 +114,15 @@ with open(loadfile, 'rU') as lf:
 	    lst = re.split(',',implic)
 	    for i in range(len(lst)):
 		(facet,val) = re.split(':',lst[i]) 
-		val = val.strip('\'"')
+		val = val.strip(' \'"')
+		facet = facet.strip(' \'"')
 		implic_dct[facet] = val
 
 	# clean up aliases
 	aliases = aliases +','+name # add the name as an alias
 	aliases = aliases.lower()
 	al = re.split(',',aliases)  # split on coma
-	alias_list = [al for al in al if al]  # remove empty strings from trailing commas
+	alias_list = [al.strip(' ') for al in al if al]  # remove empty strings from trailing commas
 
 
 	# facet_type, name, implic_dct, alias_list
@@ -166,16 +166,29 @@ with open(loadfile, 'rU') as lf:
 	# NOT implied stuff!!
 
 
-    # loop for implications 
-    for (k,v) in implic_dct:
-	# k is the facet (tag); v is the facet-value (xyz)
-	tar = session.query(getattr(model, k.capitalize())).filter(table.name == v).first()
-	if not tar:
-	    logger.debug("ERROR:  not recognized:  %s:%s on line %s" % (v,k, line))
-	    sys.exit()
-	facet_imp = FacetImplic(existing.id, facet_type, tar.id, k)
-	session.add(facet_impl)
-	session.flush()
+	# loop for implications 
+	if implic_dct:
+	    for k,v in implic_dct.iteritems():
+		# k is the facet (tag); v is the facet-value (xyz)
+		v = v.strip(' "\'')
+		k = k.strip(' "\'')
+		itable = getattr(models, k.capitalize())
+		tar = session.query(itable).filter(func.lower(itable.name) == v.lower()).first()
+		if not tar:
+		    logger.debug('ERROR:  not recognized:  "%s:%s" on line "%s"' % (v,k, line))
+		    sys.exit()
+		ex = session.query(FacetImplic).filter(FacetImplic.predicate == existing.id \
+		    , FacetImplic.predicate_type == facet_type, FacetImplic.target == tar.id \
+		    , FacetImplic.target_type == k).first()
+		if not ex:
+		    logger.debug('no facet_implication found for %d %s => %d %s' \
+			% (existing.id, facet_type, tar.id, k))
+		    facet_imp = FacetImplic(existing.id, facet_type, tar.id, k)
+		    session.add(facet_imp)
+		    session.flush()
 
-    # the tagger does the actual work of applying the implications
+	# the tagger does the actual work of applying the implications
+
+
+
 
