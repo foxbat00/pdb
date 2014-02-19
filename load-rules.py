@@ -92,9 +92,9 @@ with open(loadfile, 'rU') as lf:
 	if re.search(r'^\s+$',line):
 	    continue
 
-	mo = re.match(r'^\s*(\w+)\s+([\w-]+)\s+\[\s*([^\]]*)\s*\]\s+\[\s*([^\]]*)\s*\]\s*', str)
+	mo = re.match(r'^\s*(\w+)\s+([\S-]+)\s+\[\s*([^\]]*)\s*\]\s+\[\s*([^\]]*)\s*\]\s*$', line)
 	res = []
-	if not mo or len( mo.groups() ) < 5:
+	if not mo or len( mo.groups() ) < 4:
 	    logger.debug("MALFORMED RULE: %s" % line)
 	    sys.exit()
 
@@ -109,15 +109,19 @@ with open(loadfile, 'rU') as lf:
 
 	    
 	#clean up implic
-	lst = re.split(',',implic)
-	implic_dct = {}
-	for i in range(len(lst)):
-	    (facet,val) = split(':',lst.i) 
-	    val = val.strip('\'"')
-	    implic_dct.append((facet,val))
+	implic_dct = None
+	if implic != '':
+	    implic_dct = {}
+	    lst = re.split(',',implic)
+	    for i in range(len(lst)):
+		(facet,val) = re.split(':',lst[i]) 
+		val = val.strip('\'"')
+		implic_dct[facet] = val
 
 	# clean up aliases
-	al = re.split(',',implic)  # split on coma
+	aliases = aliases +','+name # add the name as an alias
+	aliases = aliases.lower()
+	al = re.split(',',aliases)  # split on coma
 	alias_list = [al for al in al if al]  # remove empty strings from trailing commas
 
 
@@ -129,7 +133,7 @@ with open(loadfile, 'rU') as lf:
 	# check/create the necessary facets in case they don't exist yet
 
 	# thing this row describes
-	table  = getattr(models, facet_type)
+	table  = getattr(models, facet_type.capitalize())
 	existing = session.query(table).filter(table.name == name).first()
 	if not existing:
 	    logger.debug("existing not found: %s %s" % (facet_type, name))
@@ -139,6 +143,7 @@ with open(loadfile, 'rU') as lf:
 
 	# aliases
 	for a in alias_list:
+	    a = a.lower()
 	    alias = session.query(Alias).filter(Alias.name == a).first()
 	    if not alias:
 		logger.debug("alias not found: %s" % a)
@@ -147,13 +152,14 @@ with open(loadfile, 'rU') as lf:
 		session.flush()
 	    
 	    # linkage
-	    ltable = getattr(models, "Alias"+facet_type)
+	    ltable = getattr(models, "Alias"+facet_type.capitalize())
 	    link = session.query(ltable).filter(ltable.alias_id == alias.id \
 		, getattr(ltable,facet_type+"_id") == existing.id ).first()
 	    if not link:
-		logger.debug("alias_%s not found: %s" % (facet_type, alias.id))
+		logger.debug("alias_%s not found for alias_id %s and %s_id %s" \
+		    % (facet_type, alias.id, facet_type, existing.id))
 		link = ltable(alias.id, existing.id)
-		session.add(new)
+		session.add(link)
 		session.flush()
 
 
@@ -163,7 +169,7 @@ with open(loadfile, 'rU') as lf:
     # loop for implications 
     for (k,v) in implic_dct:
 	# k is the facet (tag); v is the facet-value (xyz)
-	tar = session.query(getattr(model, k)).filter(table.name == v).first()
+	tar = session.query(getattr(model, k.capitalize())).filter(table.name == v).first()
 	if not tar:
 	    logger.debug("ERROR:  not recognized:  %s:%s on line %s" % (v,k, line))
 	    sys.exit()

@@ -160,6 +160,15 @@ class SceneStar(Base):
 
 
 
+class AliasTag(Base):
+    __table__ = Table('alias_tag', Base.metadata, autoload=True)
+
+    def __init__(self, alias_id, tag_id, tentative=True):
+	self.alias_id = alias_id
+	self.tag_id = tag_id
+	self.tentative = tentative
+
+
 
 class AliasStar(Base):
     __table__ = Table('alias_star', Base.metadata, autoload=True)

@@ -60,7 +60,7 @@ CREATE TABLE scene (
 CREATE TABLE tag (
     id			serial		PRIMARY KEY,
     name		varchar(20)	NOT NULL UNIQUE,
-    restricted		boolean		NOT NULL
+    restricted		boolean		NOT NULL DEFAULT 'f'
 );
 
 CREATE TABLE star (

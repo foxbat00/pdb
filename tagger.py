@@ -65,8 +65,12 @@ def pairwise(iterable):
 def contains(small, big):
     for i in xrange(len(big)-len(small)+1):
         for j in xrange(len(small)):
-            if big[i+j] != small[j]:
-                break
+	    if type(big[i+j]) == type('') == type(small[j]):
+		if big[i+j].lower() != small[j].lower():
+		    break
+	    else:
+		if big[i+j] != small[j]:
+		    break
         else:
             return i, i+len(small)
     return False
@@ -95,7 +99,7 @@ def addSceneAssociation(table_name,target_id, scene_id)
 	# table_name: e.g. 'tag', 'star'
 	# table:  SceneTag, SceneStar ORM objects
 
-    table = getattr(models, 'Scene'+table_name)
+    table = getattr(models, 'Scene'+table_name.capitalize())
     col = table_name.lower()+'_id' 
     existing = session.query(table).filter(table.scene_id == scene_id, table.col == target_id) .first()
     if not existing:
@@ -110,11 +114,11 @@ def addSceneAssociation(table_name,target_id, scene_id)
 
 def addImplied(table_name,target_id, scene_id)
     col = table_name.lower()+'_id' 
-    table = getattr(models, base_name)
+    table = getattr(models, base_name.capitalize())
     implics = session.query(FacetImplic).filter(FacetImplic.predicate == target_id \
 	, FacetImplic.predicate_type == table_name).all()
     for i implics:
-	addAssociation(i.target_type, i.target, scene_id)
+	addSceneAssociation(i.target_type, i.target, scene_id)
 
 
 def permute(string):
