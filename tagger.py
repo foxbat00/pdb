@@ -53,13 +53,16 @@ def isQuoteEnclosed(string):
 
 # break a string down into words (alphanum) and ignore quotes and all other non-alphas
 def mulch(string):
-    return re.findall(r'\w+',string)
+    if not string:
+	return None
+    else:
+	return re.findall(r'\w+',string)
 
 # iterate pairwise through a list  "s -> (s0,s1), (s1,s2), (s2, s3), ..."
 def pairwise(iterable):
         a, b = tee(iterable)
-	    next(b, None)
-	        return izip(a, b)
+	next(b, None)
+	return izip(a, b)
 
 # if small is a subsequence of big, returns (start, end+1) of sequence occurence
 def contains(small, big):
@@ -94,7 +97,7 @@ def wordmatch(condition, mulched_wordbag):
 
 # add association  to  table (SceneTag, SceneStar, etc)'s target id and the scene
 
-def addSceneAssociation(table_name,target_id, scene_id)
+def addSceneAssociation(table_name,target_id, scene_id):
 
 	# table_name: e.g. 'tag', 'star'
 	# table:  SceneTag, SceneStar ORM objects
@@ -108,16 +111,16 @@ def addSceneAssociation(table_name,target_id, scene_id)
 	session.flush()
 	addImplied(table_name, target_id, scene_id)
     else:
-	logger.debug("existing tag for scene %d target %d (of %s)" % (scene_id, target_id, table_name)
+	logger.debug("existing tag for scene %d target %d (of %s)" % (scene_id, target_id, table_name))
 
 
 
-def addImplied(table_name,target_id, scene_id)
+def addImplied(table_name,target_id, scene_id):
     col = table_name.lower()+'_id' 
     table = getattr(models, base_name.capitalize())
     implics = session.query(FacetImplic).filter(FacetImplic.predicate == target_id \
 	, FacetImplic.predicate_type == table_name).all()
-    for i implics:
+    for i in implics:
 	addSceneAssociation(i.target_type, i.target, scene_id)
 
 
@@ -135,8 +138,7 @@ def permute(string):
 #### make scenes if needed
 
 # collect files that have no scene
-for file in session.query(File).filter(_not(exists().where(SceneFile.file_id == File.id)))
-    yield_per(200):
+for file in session.query(File).filter(not_(exists().where(SceneFile.file_id == File.id))).yield_per(200):
 
     # make scene if none
     scene = Scene(file.display_name)
@@ -153,11 +155,12 @@ session.commit()
 
 #### collect the scenes and tag them
 
-aliases = session.query(Alias).filter(active == True).all()
+aliases = session.query(Alias).filter(Alias.active == True).all()
 
-for scene in session.query(Scene).filter(Scene.confirmed != True).all()
+scenes = session.query(Scene).filter(Scene.confirmed != True).all()
+for scene in scenes:
     agg_wordbag = session.query(func.get_words_for_scene(scene.id)).first()
-    mulched_wordbag = mulch(wordbag)
+    mulched_wordbag = mulch(agg_wordbag)
 
     # iterate over aliases
     for a in aliases:
@@ -188,8 +191,8 @@ for scene in session.query(Scene).filter(Scene.confirmed != True).all()
 			flags = re.I
 		    match = re.search(a.condition, wordbag, flags)
 		elif tr.condition_type == 'TSVECTOR':
-		    match = session.query(Scene).filter(Scene.tsvector.op('@@')(func.plainto_tsquery(a.condition))\
-			.first()
+		    match = session.query(Scene).filter(Scene.tsvector.op('@@')(func.plainto_tsquery(a.condition)))\
+		    .first()
 		else:
 		    logger.error("unrecognized alias_rule.condition_type: %s" % tr.condition_type)
 		    continue
@@ -210,4 +213,4 @@ for scene in session.query(Scene).filter(Scene.confirmed != True).all()
 
 
 			
-
+# session.commit()

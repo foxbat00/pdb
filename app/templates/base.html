@@ -15,6 +15,7 @@
     <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
     <script src="{{ url_for('static',filename='jquery.pjax.js') }}"></script>
+    <script src="{{ url_for('static',filename='pdb.js') }}"></script>
 
     <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.min.css" rel="stylesheet">
     <link href="{{ url_for('static',filename='pdb.css') }}" rel="stylesheet" type="text/css">
@@ -58,6 +59,9 @@
       </div><!-- /.container-fluid -->
 </nav>
     {% endblock %}
+    <div id="right-sidebar"> 
+    <a href="#" id="mytoggle" class="button" target="_blank" style="display:block">X</a>
+    </div>
 
     <div class="container page">
         {% for message in get_flashed_messages() %}
@@ -89,8 +93,21 @@
     {% endblock %}
   </body>
   <script type="text/javascript">
-    $(document).pjax('a[pjax]', '#content')
+    $(document).pjax('a[pjax]', '#content');
+
+    $('#mytoggle').toggle(function() {
+	$('#right-sidebar').animate({
+	    width: "10px",
+	    backgroundColor: "#000000"
+	}, 400);
+    }, function() {
+	$('#right-sidebar').animate({
+	    width: "200px",
+	    backgroundColor: "#ffffff"
+	}, 400);
     });
+
+
  </script> 
 </html>
 {% endif %}

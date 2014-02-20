@@ -53,7 +53,7 @@ def percentSeparator(str):
 
 
 @mod.route('/test/', methods=('GET','POST') )
-def browse_view():
+def test_view():
     return render_template('test.html')
 
 @mod.route('/browse/', methods=('GET','POST') )

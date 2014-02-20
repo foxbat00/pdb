@@ -50,7 +50,7 @@ for r in rs:
     for root, dirs, files in os.walk(rpath,**walkargs):
 	for f in files:
 	    fpart,ext = os.path.splitext(f)
-	    tokens = re.findall(r'\w+',fpart)
+	    tokens = re.findall(r'[A-Za-z]+',fpart)
 	    for t in tokens:
 		if t.lower() in tokendict:
 		    tokendict[t.lower()] += 1

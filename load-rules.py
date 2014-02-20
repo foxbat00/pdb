@@ -41,8 +41,10 @@ logger.addHandler(logoutput)
 # options parsing
 parser = argparse.ArgumentParser(description='PDB crawler')
 parser.add_argument('-f', type=str, required=True, help='File to load from')
+parser.add_argument('-s', '--dryrun',action='store_true', default=False,  help='Load rules to check formating but do no touch the DB')
 args = parser.parse_args()
 loadfile = args.f
+simulate = args.dryrun if args.dryrun else None
 if not loadfile:
     logger.debug("No loadfile")
 if not os.path.isfile(loadfile):
@@ -82,9 +84,10 @@ def contains(small, big):
 
 
 
-
 with open(loadfile, 'rU') as lf:
+    linei=0
     for line in lf.readlines():
+	linei+=linei
 
 	# elimiate comments
 	line = re.sub(r'#.*$','',line)
@@ -92,9 +95,9 @@ with open(loadfile, 'rU') as lf:
 	if re.search(r'^\s+$',line):
 	    continue
 
-	mo = re.match(r'^\s*(\w+)\s+((["\'])(?:(?=(\\?))\4.)*?\3|((\S+)))\s+\[\s*([^\]]*)\s*\]\s+\[\s*([^\]]*)\s*\]\s*$', line)
+	mo = re.match(r'^\s*(\w+)\s+((["\'])(?:(?=(\\?))\4.)*?\3|(([^\]]+)))\s+\[\s*([^\]]*)\s*\]\s+\[\s*([^\]]*)\s*\]\s*$', line)
 	if not mo or len( mo.groups() ) < 4:
-	    logger.debug("MALFORMED RULE: %s" % line)
+	    logger.debug("MALFORMED RULE line %d: %s" % (linei,line))
 	    sys.exit()
 
 
@@ -104,7 +107,7 @@ with open(loadfile, 'rU') as lf:
 	aliases = mo.group(8)
 	
 	# remove enclosing quotes, extra space
-	name = name.strip('\'" ')
+	name = name.strip()
 
 	    
 	#clean up implic
@@ -113,21 +116,31 @@ with open(loadfile, 'rU') as lf:
 	    implic_dct = {}
 	    lst = re.split(',',implic)
 	    for i in range(len(lst)):
-		(facet,val) = re.split(':',lst[i]) 
-		val = val.strip(' \'"')
-		facet = facet.strip(' \'"')
+		try:
+		    (facet,val) = re.split(':',lst[i]) 
+		except ValueError:
+		    logger.debug("Malformed implication line %d: %s" % (linei,implic))
+		    sys.exit()
+		val = val.strip()
+		facet = facet.strip()
 		implic_dct[facet] = val
 
 	# clean up aliases
+	    # hack for gender on stars
+	gender = 'f'
+	if facet_type == 'star' and re.search(r'_m$',name):
+		name = re.sub(r'_m$','',name)
+		gender = 'm'
 	aliases = aliases +','+name # add the name as an alias
 	aliases = aliases.lower()
 	al = re.split(',',aliases)  # split on coma
-	alias_list = [al.strip(' ') for al in al if al]  # remove empty strings from trailing commas
+	alias_list = [al.strip() for al in al if al]  # remove empty strings from trailing commas
 
 
 	# facet_type, name, implic_dct, alias_list
 	logger.debug("facet_type = %s, name = %s, implic_dct = %s, alias_list = %s" \
 	    % (facet_type, name, implic_dct, alias_list) )
+	
 
 
 	# check/create the necessary facets in case they don't exist yet
@@ -138,6 +151,9 @@ with open(loadfile, 'rU') as lf:
 	if not existing:
 	    logger.debug("existing not found: %s %s" % (facet_type, name))
 	    existing = table(name)
+	    # hack for gender on stars
+	    if facet_type == 'star':
+		existing.gender = gender
 	    session.add(existing)
 	    session.flush()
 
@@ -170,12 +186,13 @@ with open(loadfile, 'rU') as lf:
 	if implic_dct:
 	    for k,v in implic_dct.iteritems():
 		# k is the facet (tag); v is the facet-value (xyz)
-		v = v.strip(' "\'')
-		k = k.strip(' "\'')
+		v = v.strip()
+		k = k.strip()
 		itable = getattr(models, k.capitalize())
-		tar = session.query(itable).filter(func.lower(itable.name) == v.lower()).first()
+		vlower = v.lower()
+		tar = session.query(itable).filter(func.lower(itable.name) == vlower).first()
 		if not tar:
-		    logger.debug('ERROR:  not recognized:  "%s:%s" on line "%s"' % (v,k, line))
+		    logger.debug('ERROR:  not recognized facet/value:  "%s:%s" on line "%s"' % (k,v, line))
 		    sys.exit()
 		ex = session.query(FacetImplic).filter(FacetImplic.predicate == existing.id \
 		    , FacetImplic.predicate_type == facet_type, FacetImplic.target == tar.id \
@@ -189,6 +206,8 @@ with open(loadfile, 'rU') as lf:
 
 	# the tagger does the actual work of applying the implications
 
+if not simulate:
+    session.commit()
 
 
 
