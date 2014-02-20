@@ -81,7 +81,7 @@ def contains(small, big):
 # searches for condition in mulched_wordbag
 def wordmatch(condition, mulched_wordbag):
     match = True
-    terms = tokenize(condtion)		    
+    terms = tokenize(condition)		    
     for t in terms:
 	if not isQuoteEnclosed(t):
 	    if t not in mulched_wordbag:
@@ -106,6 +106,7 @@ def addSceneAssociation(table_name,target_id, scene_id):
 	newrec = table(scene_id, target_id, tentative=True)
 	session.add(newrec)
 	session.flush()
+	app.logger.debug("Adding scene-%s association: scene_id %s_id" % (table_name,scene_id,table_name,target_id))
 	addImplied(table_name, target_id, scene_id)
     else:
 	logger.debug("existing tag for scene %d target %d (of %s)" % (scene_id, target_id, table_name))
@@ -118,6 +119,7 @@ def addImplied(table_name,target_id, scene_id):
     implics = session.query(FacetImplic).filter(FacetImplic.predicate == target_id \
 	, FacetImplic.predicate_type == table_name).all()
     for i in implics:
+	logger.debug("  add by implication")
 	addSceneAssociation(i.target_type, i.target, scene_id)
 
 
@@ -186,11 +188,11 @@ for scene in scenes:
 		# the various aliases, but it might be nice to add a way to use regexs in a rule (or tsvector) in
 		# the future
 
-		match = wordmatch(a.condition, mulched_wordbag)
+		match = wordmatch(cond, mulched_wordbag)
 		
 
 		# not > and > or
-		if match and not a.exclude   or    not match and a.exclude:
+		if match:
 		    # add the association between the target and the scene
 		    for t in targets:  
 			# need to lookup the tag/star/label/series id from the Alias* table+'_id'
