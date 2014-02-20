@@ -87,7 +87,7 @@ class Scene(Base):
 	self.display_name = name 
 
     def __repr__(self): 
-	return "<Scene id=%d name=\"%s\">" % (self.id, self.name)
+	return "<Scene id=%d display_name=\"%s\">" % (self.id, self.display_name)
 
 
 

@@ -53,10 +53,7 @@ def isQuoteEnclosed(string):
 
 # break a string down into words (alphanum) and ignore quotes and all other non-alphas
 def mulch(string):
-    if not string:
-	return None
-    else:
-	return re.findall(r'\w+',string)
+    return re.findall(r'\w+',string)
 
 # iterate pairwise through a list  "s -> (s0,s1), (s1,s2), (s2, s3), ..."
 def pairwise(iterable):
@@ -159,7 +156,10 @@ aliases = session.query(Alias).filter(Alias.active == True).all()
 
 scenes = session.query(Scene).filter(Scene.confirmed != True).all()
 for scene in scenes:
-    agg_wordbag = session.query(func.get_words_for_scene(scene.id)).first()
+    agg_wordbag = session.query(func.get_words_for_scene(scene.id)).first()[0].strip()
+    if not agg_wordbag:
+	logger.debug("EMPTY get_words_for_scene on scene.id %d" % scene.id)
+	continue
     mulched_wordbag = mulch(agg_wordbag)
 
     # iterate over aliases
@@ -182,21 +182,11 @@ for scene in scenes:
 	    # test each condition
 	    for cond in cond_list:
 
-		match = None      # just needs to return non-None value if matched
-		if a.condition_type == 'WORDS':
-		    match = wordmatch(a.condition, mulched_wordbag)
-		elif a.condition_type == 'REGEX':
-		    flags = None
-		    if not a.case_sensitive:
-			flags = re.I
-		    match = re.search(a.condition, wordbag, flags)
-		elif tr.condition_type == 'TSVECTOR':
-		    match = session.query(Scene).filter(Scene.tsvector.op('@@')(func.plainto_tsquery(a.condition)))\
-		    .first()
-		else:
-		    logger.error("unrecognized alias_rule.condition_type: %s" % tr.condition_type)
-		    continue
-	    
+		# other ways used to exist here for deleted alias_rule table.  instead we're now just permuting
+		# the various aliases, but it might be nice to add a way to use regexs in a rule (or tsvector) in
+		# the future
+
+		match = wordmatch(a.condition, mulched_wordbag)
 		
 
 		# not > and > or
