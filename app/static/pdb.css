@@ -55,18 +55,18 @@ body {
 #right-sidebar{
     padding-top: 0px; 
     position:absolute;
-    width:200px;
+    width:10px;
     height:100%;
     top:50px;
     right:0;
-    background:#ffffff;
+    background:#000000;
     border-left: 1px solid #cecece;
     color:#000000;
     overflow:hidden;
  }
 
 #button-sidebar{
-    width:220px;
+    width:30px;
     height:100%;
     position:fixed;
     top:50px;

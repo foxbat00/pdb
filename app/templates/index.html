@@ -2,10 +2,27 @@
 {% block title %} - Home{% endblock %}
 {% block content %}
 {% from "forms/macros.html" import render_field %}
-    {{stats['total_file_inst']}} file instances, {{stats['total_file']}} files
-    , {{stats['total_scene']}} scenes, and {{stats['total_star']}} 
-    stars in the database!
-    <br>
-    <hr>
-    <p> Click <a href="/browse/">here</a> to continue</p>
+    <div class=main>
+    {% if stats %}
+	{{stats['total_file_inst']}} file instances, {{stats['total_file']}} files
+	, {{stats['total_scene']}} scenes, and {{stats['total_star']}} 
+	stars in the database!
+	<BR>
+    {% endif %}
+	<div id="results">
+    {% if not stats %}
+	{% include 'pjax/results.html' %}
+    {% endif %}
+    </div>
+ <script type="text/javascript">
+
+$(document).on('submit', 'form[data-pjax]', function(event) {
+  $.pjax.submit(event, '#results');
+});
+
+ </script> 
+    </div><! -- main -->
 {% endblock %}
+
+
+

@@ -40,7 +40,7 @@ $( document ).ready(function() {
 	},400);
 	$('#rightbar-toggle').text(">>");
     }
-    $('#rightbar-toggle').clicktoggle(rightbar_close, rightbar_open);
+    $('#rightbar-toggle').clicktoggle(rightbar_open, rightbar_close);
 
 
 });
