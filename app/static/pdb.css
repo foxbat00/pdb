@@ -8,6 +8,7 @@ body {
 
 #content { 
     padding-top: 120px; 
+    padding-right: 15px;
 } 
 
 .accordian-toggle a:hover {

@@ -19,6 +19,7 @@ $.fn.clicktoggle = function(a, b) {
 
 $( document ).ready(function() {
 
+
     function rightbar_close() {
 	$('#rightbar-toggle').text("<<");
 	$('#right-sidebar').animate({
@@ -28,20 +29,30 @@ $( document ).ready(function() {
 	$('#button-sidebar').animate({
 	    width: "30px",
 	},400);
+	// $('#main_content').css({ "right-margin": ''});
 	$('#rightbar-toggle').text("<<");
     }
+
+
     function rightbar_open() {
 	$('#right-sidebar').animate({
-	    width: "200px",
+	    width: "400px",
 	    backgroundColor: "#ffffff"
 	}, 400);
 	$('#button-sidebar').animate({
-	    width: "220px",
+	    width: "420px",
 	},400);
 	$('#rightbar-toggle').text(">>");
     }
     $('#rightbar-toggle').clicktoggle(rightbar_open, rightbar_close);
 
+    //pjax handlers
+    $(document).pjax('a[pjax_main]', '#main_content');
+    $(document).pjax('a[pjax_rightbar]', '#right-sidebar');
+    $(document).on('submit', 'form[data-pjax]', function(event) {
+      $.pjax.submit(event, '#results');
+    });
+    $('#right-sidebar').on('pjax:complete', rightbar_open);
 
-});
+}); // document-ready close
 

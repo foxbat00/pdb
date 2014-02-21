@@ -51,6 +51,11 @@ def index():
     stats['total_scene'] =	"{:,}".format(int(session.query(Scene).count() ))
     stats['total_star'] =	"{:,}".format(int(session.query(Star).count()  ))
     stats['total_series'] =	"{:,}".format(int(session.query(Series).count()  ))
+    stats['total_data'] =	int( \
+	session.query(func.sum(File.size)) \
+	.join(FileInst, File.id == FileInst.file) \
+	.filter(FileInst.deleted_on == None, FileInst.marked_delete != True) \
+	.scalar()   )
     return render_template('index.html', stats=stats)
 
 

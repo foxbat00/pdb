@@ -74,7 +74,7 @@ class FileInst(Base):
 
     def __repr__(self): 
 	return "<FileInst id=%d name=\"%s\", deleted=%s>" % (self.id, modJoin(self.Repo.path,self.path,self.name)\
-	    , 'F' if not self.deleted_on else self.deleted_on)
+	    , 'F' if not self.deleted_on and not self.marked_delete else self.deleted_on)
 
     def getFullName(self):
 	return modJoin(self.Repo.path,self.path,self.name)
@@ -88,6 +88,14 @@ class Scene(Base):
 
     def __repr__(self): 
 	return "<Scene id=%d display_name=\"%s\">" % (self.id, self.display_name)
+
+    def isDeleted(self):
+	return not session.query(FileInst) \
+	    .join(File, FileInst.file == File.id) \
+	    .join(SceneFile, SceneFile.file_id == File.id) \
+	    .filter(FileInst.deleted_on == None, FileInst.marked_delete == False) \
+	    .filter(SceneFile.scene_id == self.id) \
+	    .first()
 
 
 

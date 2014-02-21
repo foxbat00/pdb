@@ -37,20 +37,20 @@
 	    <span class="icon-bar"></span>
 	    <span class="icon-bar"></span>
 	  </button>
-	  <a pjax class="navbar-brand" href="/">PDB</a>
+	  <a pjax_main class="navbar-brand" href="/">PDB</a>
 	</div>
 
 	<!-- Collect the nav links, forms, and other content for toggling -->
 	<div class="collapse navbar-collapse" id="bs-navbar-collapse-1">
 	  <ul class="nav navbar-nav">
-	    {#<li class="active" id="navbar-search"><a pjax href="/browse">Search</a></li>#}
+	    {#<li class="active" id="navbar-search"><a pjax_main href="/browse">Search</a></li>#}
 	    <li class="dropdown">
 	      <a href="#" class="dropdown-toggle" data-toggle="dropdown">Facets <b class="caret"></b></a>
 	      <ul class="dropdown-menu">
-		<li><a pjax href="/edit/tags">Tags</a></li>
-		<li><a pjax href="/edit/stars">Stars</a></li>
-		<li><a pjax href="/edit/labels">Labels</a></li>
-		<li><a pjax href="/edit/series">Series</a></li>
+		<li><a pjax_main href="/edit/tags">Tags</a></li>
+		<li><a pjax_main href="/edit/stars">Stars</a></li>
+		<li><a pjax_main href="/edit/labels">Labels</a></li>
+		<li><a pjax_main href="/edit/series">Series</a></li>
 	      </ul>
 	    </li>
 	  </ul>
@@ -69,6 +69,7 @@
     <a href="#" id="rightbar-toggle" class="button">&lt;&lt;</a>
     </div>
     <div id="right-sidebar"> 
+	{% include 'pjax/sidebar.html' %}
     </div>
 
     <div class="container page">
@@ -99,9 +100,6 @@
     </div>
     {% block js_footer %}
     {% endblock %}
-  <script type="text/javascript">
-    $(document).pjax('a[pjax]', '#content');
- </script> 
   </body>
 </html>
 {% endif %}

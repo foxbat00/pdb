@@ -16,17 +16,6 @@ import shlex
 
 mod = Blueprint('browse', __name__)
 
-from sqlalchemy.sql import column
-# snippet to use in querying against only active files for jquery
-def active_files(*fields):
-    if not fields:
-	return select([File]).select_from(func.active_files()).alias('active_files')
-    else:
-	field_list = []
-	for f in fields:
-	    field_list.append(column(f))
-	return select(field_list).select_from(func.active_files()).alias('active_files')
-	    
 
 # turn single-field query results into straight list
 def sfrToList(rs):
@@ -66,11 +55,36 @@ def browse_view():
 	    app.logger.debug("query = #%s#" % rawquery)
 	    query = percentSeparator(rawquery)
 	    max = 100
-	    afd = active_files('display_name')
-	    q = session.query(afd.c.display_name)\
-		.filter( afd.c.display_name.ilike('%'+query+'%') )
+	    q = session.query(Scene) \
+		.join(SceneFile, SceneFile.scene_id == Scene.id) \
+		.join(File, File.id == SceneFile.file_id) \
+		.join(FileInst, FileInst.file == File.id) \
+		.filter(Scene.display_name.ilike('%'+query+'%') ) \
+		.filter(FileInst.deleted_on == None, FileInst.marked_delete == False) 
+# TODO: add a checkbox to results page that includes deleted items, flag deleted items with pill
+# or include a separate list at the bottom of deleted items, or something like that
 	    rs = q.limit(max).all()
 	    count = len(q.all())
-	    return render_template('pjax/results.html', results=sfrToList(rs), count=count, max=max, query=rawquery)
-    return render_template('browse.html')
+	    return render_template('pjax/results.html', results=rs, count=count, max=max, query=rawquery)
+    #return render_template('browse.html')
+    return redirect('/')
 
+
+@mod.route('/scene_deets/<int:sid>', methods=('GET', 'POST'))
+def scene_deets_view(sid):
+    app.logger.debug("inside scene_deets")
+    if "X-PJAX" in request.headers:
+	app.logger.debug("xpjax detected ")
+	if sid:
+	    app.logger.debug("in scene_deets for sid %d" % sid)
+	    s = session.query(Scene).get(sid)
+	    deleted = s.isDeleted()
+	    file_insts = session.query(FileInst).join(File, FileInst.file == File.id) \
+		.join(SceneFile, File.id ==SceneFile.file_id) \
+		.filter(SceneFile.scene_id == s.id).all()
+	    return render_template('pjax/sidebar.html', scene=s, deleted=deleted, file_insts=file_insts)
+	else: 
+	    app.logger.debug("XPJAX detected, but no sid offered in url")
+    return redirect('/')
+		    
+	    

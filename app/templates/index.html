@@ -3,24 +3,17 @@
 {% block content %}
 {% from "forms/macros.html" import render_field %}
     <div class=main>
-    {% if stats %}
-	{{stats['total_file_inst']}} file instances, {{stats['total_file']}} files
-	, {{stats['total_scene']}} scenes, and {{stats['total_star']}} 
-	stars in the database!
-	<BR>
-    {% endif %}
+	{% if stats %}
+	    {{stats['total_file_inst']}} file instances, {{stats['total_file']}} files
+	    , {{stats['total_scene']}} scenes, and {{stats['total_star']}} 
+	    stars in the database: {{stats['total_data']|filesizeformat}} indexed!
+	    <BR>
+	{% endif %}
 	<div id="results">
-    {% if not stats %}
-	{% include 'pjax/results.html' %}
-    {% endif %}
-    </div>
- <script type="text/javascript">
-
-$(document).on('submit', 'form[data-pjax]', function(event) {
-  $.pjax.submit(event, '#results');
-});
-
- </script> 
+	    {% if not stats %}
+		{% include 'pjax/results.html' %}
+	    {% endif %}
+	</div>
     </div><! -- main -->
 {% endblock %}
 
