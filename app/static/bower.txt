@@ -1,0 +1,3 @@
+
+
+bower install bootstrap#3.0.0 jquery#2.0.3 jquery-pjax jquery#2.1.0 

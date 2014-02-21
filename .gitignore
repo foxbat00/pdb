@@ -60,3 +60,4 @@ logs/
 OLD/
 examples/
 ignore/
+app/static/bower_components/
