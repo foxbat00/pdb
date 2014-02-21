@@ -36,11 +36,11 @@ $( document ).ready(function() {
 
     function rightbar_open() {
 	$('#right-sidebar').animate({
-	    width: "400px",
+	    width: "50%",
 	    backgroundColor: "#ffffff"
 	}, 400);
 	$('#button-sidebar').animate({
-	    width: "420px",
+	    width: "51%",
 	},400);
 	$('#rightbar-toggle').text(">>");
     }

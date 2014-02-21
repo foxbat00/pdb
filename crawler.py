@@ -133,13 +133,21 @@ def FileScanner (fileq):
     def considerFile(scanfile):
 
 	def createScene(file):
-	    if not session.query(SceneFile).filter(SceneFile.file_id == file.id).first():
+	    scene_id = session.query(SceneFile.scene_id).filter(SceneFile.file_id == file.id).scalar()
+	    scene = session.query(Scene).get(scene_id)
+	    if not scene:
 		scene = Scene(file.display_name)
 		session.add(scene)
 		session.flush()
 		sf = SceneFile(scene.id, file.id)
 		session.add(sf)
 		session.commit()
+	    if not scene.rating:
+		m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
+		scene.rating = len(max(m,key=len)) if m else 0
+		session.commit()
+
+
 
 
 
