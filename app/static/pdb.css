@@ -65,10 +65,19 @@ body {
     overflow:hidden;
  }
 
-
+#button-sidebar{
+    width:220px;
+    height:100%;
+    position:fixed;
+    top:50px;
+    right:0;
+    background:transparent;
+    color:#fff;
+    overflow:hidden;
+ }
 
 .button{
-    width: 30px; 
+    width: 60px; 
     background-color: #000000; 
     -moz-background-clip: padding; 
     -webkit-background-clip: padding; 
