@@ -17,8 +17,6 @@ import argparse
 import string
 
 
-# globals
-logfile = 'logs/log.txt'
 
 
 
@@ -27,187 +25,192 @@ from db import *
 from models import *
 import models # needed for getattr magic
 from util import *
-session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
 
-# logging
-format = "%(levelname)s (%(threadName)s): %(message)s"
-logging.basicConfig(level=logging.DEBUG, format=format)
-logger = logging.getLogger(__name__)
-logoutput = logging.FileHandler(logfile, mode='w')
-logoutput.setLevel(logging.DEBUG)
-logoutput.setFormatter(logging.Formatter(format))
-logger.addHandler(logoutput)
+if __name__ == '__main__':
+    # globals
+    logfile = 'logs/log.txt'
 
-# options parsing
-parser = argparse.ArgumentParser(description='PDB crawler')
-parser.add_argument('-f', type=str, required=True, help='File to load from')
-parser.add_argument('-s', '--dryrun',action='store_true', default=False,  help='Load rules to check formating but do no touch the DB')
-args = parser.parse_args()
-loadfile = args.f
-simulate = args.dryrun if args.dryrun else None
-if not loadfile:
-    logger.debug("No loadfile")
-if not os.path.isfile(loadfile):
-    logger.debug("loadfile not found: %s" % loadfile)
+    session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
 
+    # logging
+    format = "%(levelname)s (%(threadName)s): %(message)s"
+    logging.basicConfig(level=logging.DEBUG, format=format)
+    logger = logging.getLogger(__name__)
+    logoutput = logging.FileHandler(logfile, mode='w')
+    logoutput.setLevel(logging.DEBUG)
+    logoutput.setFormatter(logging.Formatter(format))
+    logger.addHandler(logoutput)
 
-
-
-
-# break a string down into words and quote-enclosed phrases
-def tokenize(string):
-    return ['"{0}"'.format(fragment) if ' ' in fragment else fragment for fragment in shlex.split(string)]
-
-# return match if single or double-enclosed quote phrase detected
-def isQuoteEnclosed(string):
-    return re.search(r'(["\'])(?:(?=(\\?))\2.)*?\1',string)
-
-# break a string down into words (alphanum) and ignore quotes and all other non-alphas
-def mulch(string):
-    return re.findall(r'\w+',string)
-
-# iterate pairwise through a list  "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-def pairwise(iterable):
-        a, b = tee(iterable)
-	next(b, None)
-	return izip(a, b)
-
-# if small is a subsequence of big, returns (start, end+1) of sequence occurence
-def contains(small, big):
-    for i in xrange(len(big)-len(small)+1):
-        for j in xrange(len(small)):
-            if big[i+j] != small[j]:
-                break
-        else:
-            return i, i+len(small)
-    return False
+    # options parsing
+    parser = argparse.ArgumentParser(description='PDB crawler')
+    parser.add_argument('-f', type=str, required=True, help='File to load from')
+    parser.add_argument('-s', '--dryrun',action='store_true', default=False,  help='Load rules to check formating but do no touch the DB')
+    args = parser.parse_args()
+    loadfile = args.f
+    simulate = args.dryrun if args.dryrun else None
+    if not loadfile:
+	logger.debug("No loadfile")
+    if not os.path.isfile(loadfile):
+	logger.debug("loadfile not found: %s" % loadfile)
 
 
 
-with open(loadfile, 'rU') as lf:
-    linei=0
-    for line in lf.readlines():
-	linei+=linei
-
-	# elimiate comments
-	line = re.sub(r'#.*$','',line)
-	# if empty, skip
-	if re.search(r'^\s+$',line):
-	    continue
-
-	mo = re.match(r'^\s*(\w+)\s+((["\'])(?:(?=(\\?))\4.)*?\3|(([^\]]+)))\s+\[\s*([^\]]*)\s*\]\s+\[\s*([^\]]*)\s*\]\s*$', line)
-	if not mo or len( mo.groups() ) < 4:
-	    logger.debug("MALFORMED RULE line %d: %s" % (linei,line))
-	    sys.exit()
 
 
-	facet_type = mo.group(1)
-	name = mo.group(2)
-	implic = mo.group(7)
-	aliases = mo.group(8)
-	
-	# remove enclosing quotes, extra space
-	name = name.strip()
+    # break a string down into words and quote-enclosed phrases
+    def tokenize(string):
+	return ['"{0}"'.format(fragment) if ' ' in fragment else fragment for fragment in shlex.split(string)]
 
+    # return match if single or double-enclosed quote phrase detected
+    def isQuoteEnclosed(string):
+	return re.search(r'(["\'])(?:(?=(\\?))\2.)*?\1',string)
+
+    # break a string down into words (alphanum) and ignore quotes and all other non-alphas
+    def mulch(string):
+	return re.findall(r'\w+',string)
+
+    # iterate pairwise through a list  "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    def pairwise(iterable):
+	    a, b = tee(iterable)
+	    next(b, None)
+	    return izip(a, b)
+
+    # if small is a subsequence of big, returns (start, end+1) of sequence occurence
+    def contains(small, big):
+	for i in xrange(len(big)-len(small)+1):
+	    for j in xrange(len(small)):
+		if big[i+j] != small[j]:
+		    break
+	    else:
+		return i, i+len(small)
+	return False
+
+
+
+    with open(loadfile, 'rU') as lf:
+	linei=0
+	for line in lf.readlines():
+	    linei+=linei
+
+	    # elimiate comments
+	    line = re.sub(r'#.*$','',line)
+	    # if empty, skip
+	    if re.search(r'^\s+$',line):
+		continue
+
+	    mo = re.match(r'^\s*(\w+)\s+((["\'])(?:(?=(\\?))\4.)*?\3|(([^\]]+)))\s+\[\s*([^\]]*)\s*\]\s+\[\s*([^\]]*)\s*\]\s*$', line)
+	    if not mo or len( mo.groups() ) < 4:
+		logger.debug("MALFORMED RULE line %d: %s" % (linei,line))
+		sys.exit()
+
+
+	    facet_type = mo.group(1)
+	    name = mo.group(2)
+	    implic = mo.group(7)
+	    aliases = mo.group(8)
 	    
-	#clean up implic
-	implic_dct = None
-	if implic != '':
-	    implic_dct = {}
-	    lst = re.split(',',implic)
-	    for i in range(len(lst)):
-		try:
-		    (facet,val) = re.split(':',lst[i]) 
-		except ValueError:
-		    logger.debug("Malformed implication line %d: %s" % (linei,implic))
-		    sys.exit()
-		val = val.strip()
-		facet = facet.strip()
-		implic_dct[facet] = val
+	    # remove enclosing quotes, extra space
+	    name = name.strip()
 
-	# clean up aliases
-	    # hack for gender on stars
-	gender = 'f'
-	if facet_type == 'star' and re.search(r'_m$',name):
-		name = re.sub(r'_m$','',name)
-		gender = 'm'
-	aliases = aliases +','+name # add the name as an alias
-	aliases = aliases.lower()
-	al = re.split(',',aliases)  # split on coma
-	alias_list = [al.strip() for al in al if al]  # remove empty strings from trailing commas
+		
+	    #clean up implic
+	    implic_dct = None
+	    if implic != '':
+		implic_dct = {}
+		lst = re.split(',',implic)
+		for i in range(len(lst)):
+		    try:
+			(facet,val) = re.split(':',lst[i]) 
+		    except ValueError:
+			logger.debug("Malformed implication line %d: %s" % (linei,implic))
+			sys.exit()
+		    val = val.strip()
+		    facet = facet.strip()
+		    implic_dct[facet] = val
 
-
-	# facet_type, name, implic_dct, alias_list
-	logger.debug("facet_type = %s, name = %s, implic_dct = %s, alias_list = %s" \
-	    % (facet_type, name, implic_dct, alias_list) )
-	
+	    # clean up aliases
+		# hack for gender on stars
+	    gender = 'f'
+	    if facet_type == 'star' and re.search(r'_m$',name):
+		    name = re.sub(r'_m$','',name)
+		    gender = 'm'
+	    aliases = aliases +','+name # add the name as an alias
+	    aliases = aliases.lower()
+	    al = re.split(',',aliases)  # split on coma
+	    alias_list = [al.strip() for al in al if al]  # remove empty strings from trailing commas
 
 
-	# check/create the necessary facets in case they don't exist yet
-
-	# thing this row describes
-	table  = getattr(models, facet_type.capitalize())
-	existing = session.query(table).filter(table.name == name).first()
-	if not existing:
-	    logger.debug("existing not found: %s %s" % (facet_type, name))
-	    existing = table(name)
-	    # hack for gender on stars
-	    if facet_type == 'star':
-		existing.gender = gender
-	    session.add(existing)
-	    session.flush()
-
-	# aliases
-	for a in alias_list:
-	    a = a.lower()
-	    alias = session.query(Alias).filter(Alias.name == a).first()
-	    if not alias:
-		logger.debug("alias not found: %s" % a)
-		alias = Alias(a)
-		session.add(alias)
-		session.flush()
+	    # facet_type, name, implic_dct, alias_list
+	    logger.debug("facet_type = %s, name = %s, implic_dct = %s, alias_list = %s" \
+		% (facet_type, name, implic_dct, alias_list) )
 	    
-	    # linkage
-	    ltable = getattr(models, "Alias"+facet_type.capitalize())
-	    link = session.query(ltable).filter(ltable.alias_id == alias.id \
-		, getattr(ltable,facet_type+"_id") == existing.id ).first()
-	    if not link:
-		logger.debug("alias_%s not found for alias_id %s and %s_id %s" \
-		    % (facet_type, alias.id, facet_type, existing.id))
-		link = ltable(alias.id, existing.id)
-		session.add(link)
+
+
+	    # check/create the necessary facets in case they don't exist yet
+
+	    # thing this row describes
+	    table  = getattr(models, facet_type.capitalize())
+	    existing = session.query(table).filter(table.name == name).first()
+	    if not existing:
+		logger.debug("existing not found: %s %s" % (facet_type, name))
+		existing = table(name)
+		# hack for gender on stars
+		if facet_type == 'star':
+		    existing.gender = gender
+		session.add(existing)
 		session.flush()
 
-
-	# NOT implied stuff!!
-
-
-	# loop for implications 
-	if implic_dct:
-	    for k,v in implic_dct.iteritems():
-		# k is the facet (tag); v is the facet-value (xyz)
-		v = v.strip()
-		k = k.strip()
-		itable = getattr(models, k.capitalize())
-		vlower = v.lower()
-		tar = session.query(itable).filter(func.lower(itable.name) == vlower).first()
-		if not tar:
-		    logger.debug('ERROR:  not recognized facet/value:  "%s:%s" on line "%s"' % (k,v, line))
-		    sys.exit()
-		ex = session.query(FacetImplic).filter(FacetImplic.predicate == existing.id \
-		    , FacetImplic.predicate_type == facet_type, FacetImplic.target == tar.id \
-		    , FacetImplic.target_type == k).first()
-		if not ex:
-		    logger.debug('no facet_implication found for %d %s => %d %s' \
-			% (existing.id, facet_type, tar.id, k))
-		    facet_imp = FacetImplic(existing.id, facet_type, tar.id, k)
-		    session.add(facet_imp)
+	    # aliases
+	    for a in alias_list:
+		a = a.lower()
+		alias = session.query(Alias).filter(Alias.name == a).first()
+		if not alias:
+		    logger.debug("alias not found: %s" % a)
+		    alias = Alias(a)
+		    session.add(alias)
+		    session.flush()
+		
+		# linkage
+		ltable = getattr(models, "Alias"+facet_type.capitalize())
+		link = session.query(ltable).filter(ltable.alias_id == alias.id \
+		    , getattr(ltable,facet_type+"_id") == existing.id ).first()
+		if not link:
+		    logger.debug("alias_%s not found for alias_id %s and %s_id %s" \
+			% (facet_type, alias.id, facet_type, existing.id))
+		    link = ltable(alias.id, existing.id)
+		    session.add(link)
 		    session.flush()
 
-	# the tagger does the actual work of applying the implications
 
-if not simulate:
-    session.commit()
+	    # NOT implied stuff!!
+
+
+	    # loop for implications 
+	    if implic_dct:
+		for k,v in implic_dct.iteritems():
+		    # k is the facet (tag); v is the facet-value (xyz)
+		    v = v.strip()
+		    k = k.strip()
+		    itable = getattr(models, k.capitalize())
+		    vlower = v.lower()
+		    tar = session.query(itable).filter(func.lower(itable.name) == vlower).first()
+		    if not tar:
+			logger.debug('ERROR:  not recognized facet/value:  "%s:%s" on line "%s"' % (k,v, line))
+			sys.exit()
+		    ex = session.query(FacetImplic).filter(FacetImplic.predicate == existing.id \
+			, FacetImplic.predicate_type == facet_type, FacetImplic.target == tar.id \
+			, FacetImplic.target_type == k).first()
+		    if not ex:
+			logger.debug('no facet_implication found for %d %s => %d %s' \
+			    % (existing.id, facet_type, tar.id, k))
+			facet_imp = FacetImplic(existing.id, facet_type, tar.id, k)
+			session.add(facet_imp)
+			session.flush()
+
+	    # the tagger does the actual work of applying the implications
+
+    if not simulate:
+	session.commit()
 
 
 

@@ -151,11 +151,10 @@ class SceneTag(Base):
 class SceneStar(Base):
     __table__ = Table('scene_star', Base.metadata, autoload=True)
 
-    def __init__(self, scene_id, tag_id, tentative=True):
+    def __init__(self, scene_id, star_id, tentative=True):
 	self.scene_id = scene_id 
-	self.tag_id = tag_id 
+	self.star_id = star_id 
 	self.tentative = tentative
-
 
 
 

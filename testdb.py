@@ -19,4 +19,6 @@ import shlex
 
 
 from sqlalchemy.sql import column
-os.environ['PYTHONINSPECT'] = 'True'
+
+if __name__ == '__main__':
+    os.environ['PYTHONINSPECT'] = 'True'

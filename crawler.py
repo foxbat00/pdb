@@ -13,51 +13,12 @@ from functools import wraps
 import argparse
 
 
-# globals
-logfile = 'logs/log.txt'
-validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx"
-    , ".m4v", ".mkv", ".mov", ".asf", ".mp4", ".flv", ".3gp",".asf", ".divx" ]
-invalidExts = []
-threadMax = 4
-
-
-# threading queues
-fileq = Queue()
-repoq = Queue()
-updateq = Queue()
 
 # set up db
 from db import *
 from models import *
 from util import *
 
-# logging
-format = "%(levelname)s (%(threadName)s): %(message)s"
-logging.basicConfig(level=logging.DEBUG, format=format)
-logger = logging.getLogger(__name__)
-logoutput = logging.FileHandler(logfile, mode='w')
-logoutput.setLevel(logging.DEBUG)
-logoutput.setFormatter(logging.Formatter(format))
-logger.addHandler(logoutput)
-
-#logger.setLevel(logging.INFO)
-
-
-# options parsing
-parser = argparse.ArgumentParser(description='PDB crawler')
-
-parser.add_argument('-x','--exclude', nargs='+', type=int, help='repositories to exclude from crawl, by id')
-args = parser.parse_args()
-
-excludeRepos = []
-if args.exclude:
-    for r in args.exclude:
-	excludeRepos.append(r)
-
-
-
-
-logger.info("##### starting new file crawl at %s" % datetime.datetime.now())
 
 
 @contextmanager
@@ -322,67 +283,105 @@ def FileUpdater(updateq):
 #
 #############################################################
 
-# load repositories
-rs = session.query(Repository).all()
+
+if __name__ == '__main__':
 
 
-# walk the files in each repository
+    # threading queues
+    fileq = Queue()
+    repoq = Queue()
+    updateq = Queue()
+    # logging
+    format = "%(levelname)s (%(threadName)s): %(message)s"
+    logging.basicConfig(level=logging.DEBUG, format=format)
+    logger = logging.getLogger(__name__)
+    logoutput = logging.FileHandler(logfile, mode='w')
+    logoutput.setLevel(logging.DEBUG)
+    logoutput.setFormatter(logging.Formatter(format))
+    logger.addHandler(logoutput)
+
+    #logger.setLevel(logging.INFO)
 
 
+    # options parsing
+    parser = argparse.ArgumentParser(description='PDB crawler')
 
+    parser.add_argument('-x','--exclude', nargs='+', type=int, help='repositories to exclude from crawl, by id')
+    args = parser.parse_args()
 
-logger.debug("adding repos")
-for r in rs:
-    logger.debug("...enqueuing repository %s" % r)
-    rid = r.id
-    if rid not in excludeRepos:
-	repoq.put(rid)
-    else:
-	logger.debug("excluding repo: %d %s" % (r.id, r.path))
-
-# FileLoaders consume repos from the repoq, scan those repos, and add files to the fileq
-logger.debug("launching FileLoaders")
-for i in range (threadMax if len(rs) > threadMax else len(rs)):
-    t = Thread(target=FileLoader, args=(repoq,fileq))
-    t.daemon = True  # the prog ends when no alive non-daemons are left
-    t.start()
-
-repoq.join() # wait/ensure for everything to be added...
-logger.info(" --done enqueuing files (FileLoaders)-- complete %s" % datetime.datetime.now())
-logger.debug(" the queue for FileScanners is %d" % fileq.qsize())
-
-# FileScanners consume files from the fileq, analyzes them,  and add records to the database
-logger.debug("launching FileScanners")
-for i in range (threadMax):
-    t  = Thread(target=FileScanner, args=(fileq,)) # requires a tuple
-    t.daemon = True  # the prog ends when no alive non-daemons are left
-    t.start()
-
-fileq.join()
-logger.info(" --done building filelist (FileScanners) -- complete %s" % datetime.datetime.now())
+    excludeRepos = []
+    if args.exclude:
+	for r in args.exclude:
+	    excludeRepos.append(r)
 
 
 
-logger.info("###### crawl for new files -- complete %s #######" % datetime.datetime.now())
 
-# check file_instances that we haven't seen in a while
-for q in session.query(FileInst,Repository).join(Repository).filter(FileInst.deleted_on == None)\
-	.filter(FileInst.last_seen < datetime.datetime.now() - datetime.timedelta(days=3)).yield_per(300):
-    (fi,r) = q
-    if fi and r and r.id not in excludeRepos:
-	uf = UpdateFile(r.id, fi.id)
-	updateq.put(uf)
+    logger.info("##### starting new file crawl at %s" % datetime.datetime.now())
 
-logger.debug("update qsize = %d" % updateq.qsize())
-if not updateq.empty():
-    for i in range (threadMax):
-	t = Thread(target=FileUpdater,args=(updateq,))  # requires a tuple
+
+
+    # load repositories
+    rs = session.query(Repository).all()
+
+
+    # walk the files in each repository
+
+
+
+
+    logger.debug("adding repos")
+    for r in rs:
+	logger.debug("...enqueuing repository %s" % r)
+	rid = r.id
+	if rid not in excludeRepos:
+	    repoq.put(rid)
+	else:
+	    logger.debug("excluding repo: %d %s" % (r.id, r.path))
+
+    # FileLoaders consume repos from the repoq, scan those repos, and add files to the fileq
+    logger.debug("launching FileLoaders")
+    for i in range (threadMax if len(rs) > threadMax else len(rs)):
+	t = Thread(target=FileLoader, args=(repoq,fileq))
 	t.daemon = True  # the prog ends when no alive non-daemons are left
 	t.start()
 
-updateq.join()
-session.close()
-logger.info("###### crawl of files not recently seen -- complete %s #######" % datetime.datetime.now())
+    repoq.join() # wait/ensure for everything to be added...
+    logger.info(" --done enqueuing files (FileLoaders)-- complete %s" % datetime.datetime.now())
+    logger.debug(" the queue for FileScanners is %d" % fileq.qsize())
+
+    # FileScanners consume files from the fileq, analyzes them,  and add records to the database
+    logger.debug("launching FileScanners")
+    for i in range (threadMax):
+	t  = Thread(target=FileScanner, args=(fileq,)) # requires a tuple
+	t.daemon = True  # the prog ends when no alive non-daemons are left
+	t.start()
+
+    fileq.join()
+    logger.info(" --done building filelist (FileScanners) -- complete %s" % datetime.datetime.now())
+
+
+
+    logger.info("###### crawl for new files -- complete %s #######" % datetime.datetime.now())
+
+    # check file_instances that we haven't seen in a while
+    for q in session.query(FileInst,Repository).join(Repository).filter(FileInst.deleted_on == None)\
+	    .filter(FileInst.last_seen < datetime.datetime.now() - datetime.timedelta(days=3)).yield_per(300):
+	(fi,r) = q
+	if fi and r and r.id not in excludeRepos:
+	    uf = UpdateFile(r.id, fi.id)
+	    updateq.put(uf)
+
+    logger.debug("update qsize = %d" % updateq.qsize())
+    if not updateq.empty():
+	for i in range (threadMax):
+	    t = Thread(target=FileUpdater,args=(updateq,))  # requires a tuple
+	    t.daemon = True  # the prog ends when no alive non-daemons are left
+	    t.start()
+
+    updateq.join()
+    session.close()
+    logger.info("###### crawl of files not recently seen -- complete %s #######" % datetime.datetime.now())
 
 
 
