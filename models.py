@@ -147,6 +147,8 @@ class SceneFile(Base):
 	self.scene_id = scene_id 
 	self.file_id = file_id 
 	self.tentative = tentative
+    def __repr__(self): 
+	return "<SceneFile scene_id=%d file_id=%d tentative=%s>" % (self.scene_id, self.file_id, self.tentative)
 
 class SceneTag(Base):
     __table__ = Table('scene_tag', Base.metadata, autoload=True)
@@ -155,6 +157,8 @@ class SceneTag(Base):
 	self.scene_id = scene_id 
 	self.tag_id = tag_id 
 	self.tentative = tentative
+    def __repr__(self): 
+	return "<SceneTag scene_id=%d tag_id=%d tentative=%s>" % (self.scene_id, self.tag_id, self.tentative)
 
 class SceneStar(Base):
     __table__ = Table('scene_star', Base.metadata, autoload=True)
@@ -163,6 +167,8 @@ class SceneStar(Base):
 	self.scene_id = scene_id 
 	self.star_id = star_id 
 	self.tentative = tentative
+    def __repr__(self): 
+	return "<SceneStar scene_id=%d star_id=%d tentative=%s>" % (self.scene_id, self.star_id, self.tentative)
 
 
 
@@ -175,6 +181,8 @@ class AliasTag(Base):
 	self.tag_id = tag_id
 	self.tentative = tentative
 
+    def __repr__(self): 
+	return "<AliasTag alias_id=%d tag_id=%d tentative=%s" % (self.alias_id, self.tag_id, self.tentive)
 
 
 class AliasStar(Base):
@@ -185,6 +193,8 @@ class AliasStar(Base):
 	self.star_id = star_id
 	self.tentative = tentative
 
+    def __repr__(self): 
+	return "<AliasStar alias_id=%d star_id=%d tentative=%s" % (self.alias_id, self.star_id, self.tentive)
 
 class AliasLabel(Base):
     __table__ = Table('alias_label', Base.metadata, autoload=True)
@@ -194,6 +204,8 @@ class AliasLabel(Base):
 	self.label_id = label_id
 	self.tentative = tentative
 
+    def __repr__(self): 
+	return "<AliasLabel alias_id=%d label_id=%d tentative=%s" % (self.alias_id, self.label_id, self.tentive)
 
 class AliasSeries(Base):
     __table__ = Table('alias_series', Base.metadata, autoload=True)
@@ -204,6 +216,8 @@ class AliasSeries(Base):
 	self.tentative = tentative
 
 
+    def __repr__(self): 
+	return "<AliasSeries alias_id=%d series_id=%d tentative=%s" % (self.alias_id, self.series_id, self.tentive)
 
  
 # tagging
@@ -220,5 +234,8 @@ class FacetImplic(Base):
 	self.operator = operator
 
 
+    def __repr__(self): 
+	return "<FacetImplic %s:%d => %s:%d" \
+	    % (self.predicate_type, self.predicate, self.target_type, self.target)
 
 

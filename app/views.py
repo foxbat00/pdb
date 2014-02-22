@@ -2,6 +2,7 @@ from flask import Blueprint, Response, render_template, flash, redirect, session
 from app import app
 from db import session, Base
 from models import *
+import models # needed for getattr magic
 from datetime import datetime
 from sqlalchemy import *
 from app.forms import BrowseForm
@@ -44,9 +45,9 @@ def percentSeparator(str):
 def test_view():
     return render_template('test.html')
 
-@app.route('/browse/', methods=('GET','POST') )
-def browse_view():
-    app.logger.debug("in browse_view")
+@app.route('/search/words/scene/', methods=('GET','POST') )
+def search_view():
+    app.logger.debug("in search_view")
     if "X-PJAX" in request.headers:
 	app.logger.debug("xpjax detected ")
 	if "query" in request.values:
@@ -65,25 +66,58 @@ def browse_view():
 	    rs = q.limit(max).all()
 	    count = len(q.all())
 	    return render_template('pjax/results.html', results=rs, count=count, max=max, query=rawquery)
-    #return render_template('browse.html')
     return redirect('/')
 
 
-@app.route('/scene_deets/<int:sid>', methods=('GET', 'POST'))
-def scene_deets_view(sid):
-    app.logger.debug("inside scene_deets")
+@app.route('/get/<thing>/<int:id>', methods=('GET', 'POST'))
+def get_pjax(thing, id):
+    app.logger.debug("inside get_pjax")
     if "X-PJAX" in request.headers:
 	app.logger.debug("xpjax detected ")
-	if sid:
-	    app.logger.debug("in scene_deets for sid %d" % sid)
-	    s = session.query(Scene).get(sid)
-	    deleted = s.isDeleted()
-	    file_insts = session.query(FileInst).join(File, FileInst.file == File.id) \
-		.join(SceneFile, File.id ==SceneFile.file_id) \
-		.filter(SceneFile.scene_id == s.id).all()
-	    return render_template('pjax/sidebar.html', scene=s, deleted=deleted, file_insts=file_insts)
+	if thing and id:
+	    app.logger.debug("in get_pjax for thing %s and id %d" % (thing, id))
+	    tbl = getattr(models, thing.lower().capitalize())
+	    o = session.query(tbl).get(id)
+	    # scenes
+	    if thing == 'scene':    
+		deleted = o.isDeleted()
+		file_insts = session.query(FileInst).join(File, FileInst.file == File.id) \
+		    .join(SceneFile, File.id ==SceneFile.file_id) \
+		    .filter(SceneFile.scene_id == id).all()
+    tags = session.query(Tag.name) \
+	.select_from(SceneTag) \
+	.join(Tag, Tag.id == SceneTag.tag_id) \
+	.filter(SceneTag.scene_id == o.id) \
+	.all()
+		    
+		return render_template('pjax/sidebar.html', scene=o, deleted=deleted, file_insts=file_insts)
+	    else:
+		app.logger.debug("get not yet implemented for type %s" % thing)
 	else: 
-	    app.logger.debug("XPJAX detected, but no sid offered in url")
+	    app.logger.debug("XPJAX detected, but no id offered in url")
     return redirect('/')
 		    
-	    
+
+
+@app.route('/update/<thing>/<col>/<value>', methods=('GET','POST') )
+def update_pjax(thing, col, value):
+    app.logger.debug("inside update_pjax")
+    if "X-PJAX" in request.headers:
+	app.logger.debug("xpjax detected ")
+	if thing and col and value:
+	    app.logger.debug("in update_pjax for thing %s, col %s, and value %s" % (thing, col, value))
+	    tbl = getattr(models, thing.lower.capitalize())
+	    o = session.query(tbl).get(id)
+	    if o and setattr(o,col.lower(),value):
+		# TODO consider cleaning up value first according to whatever scheme thing requires
+		return True
+	    else:
+		app.logger.debug("update failed")
+		return False
+	else: 
+	    app.logger.debug("XPJAX detected, but no thing or col or value offered in url")
+    return redirect('/')
+		    
+
+    
+    return False

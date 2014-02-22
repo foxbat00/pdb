@@ -1,0 +1,14 @@
+
+
+
+ - consider whether to implement sidebar as lots of forms which each return a new element (or not,
+    or one form which returns a new sidebar
+
+
+	- implement json update for displayname :
+
+
+- add tags/stars, etc
+
+
+- show series/label, but as pill, and only one

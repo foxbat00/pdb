@@ -133,23 +133,6 @@ def permute(string):
 
 
 
-#### make scenes if needed
-"""
-    # collect files that have no scene
-    for file in session.query(File).filter(not_(exists().where(SceneFile.file_id == File.id))).yield_per(200):
-
-	# make scene if none
-	scene = Scene(file.display_name)
-	session.add(scene)
-	session.flush()
-	sf = SceneFile(scene.id, file.id)
-	session.add(sf)
-	session.flush()
-	
-    session.commit()
-"""
-
-
 
 def getAliasesAndDict():
     aliases = session.query(Alias).filter(Alias.active == True).all()
@@ -240,6 +223,26 @@ def makeFacets(scene, apdict=None, aliases=None, tbls=None):
 #### prepare some data to speed things up, including permuted aliases, and alias-* association tables
 
 if __name__ == '__main__':
+
+
+
+    #### make scenes if needed
+    # collect files that have no scene
+    for file in session.query(File).filter(not_(exists().where(SceneFile.file_id == File.id))).yield_per(200):
+
+	# make scene if none
+	scene = Scene(file.display_name)
+	m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
+	scene.rating = len(max(m,key=len)) if m else 0
+	session.add(scene)
+	session.flush()
+	sf = SceneFile(scene.id, file.id)
+	session.add(sf)
+	session.flush()
+	    
+    session.commit()
+
+
 
     (aliases, apdict) = getAliasesAndDict()
 

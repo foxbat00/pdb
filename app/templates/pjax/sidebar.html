@@ -4,7 +4,10 @@
 	<span class="label label-danger">Deleted</span>
     {% endif %}
     {# figure out if deleted, show label-pill #}
-    <h4>Display Name:</h4> <input type="text" class="form-control" value="{{scene.display_name}}">
+    <h4>Display Name:</h4> 
+    <form action="/update/scene/wtf/?" method="POST" data-pjax >
+    <input type="text" id="sidebar-display_name" class="form-control" value="{{scene.display_name}}">
+    </form>
     <h4>Rating:</h4> 
     {% for i in range(scene.rating|int) %}
 	<span class="glyphicon glyphicon-star"></span>
@@ -15,6 +18,20 @@
 	    Unrated
 	{% endif %}
     {% endfor %}
+    {% if facets  %}
+	{% if facets['tags'] %}
+	    <h4>Tags:</h4>
+	    <form method='post' action=/update/tagsforscene/?> 
+		<ul id="mytags">
+		    {% for t in facets['tags']: %}
+			<li>{{t}}<li>
+		    {% endfor %}
+		</ul>
+	    </form>
+	{% endif %}
+    {% endif %}
+
+	
     {% for fi in file_insts %}
 	<h4>File instances:</h4> <ul>
 	  <li>Name: {{fi.name}} 
