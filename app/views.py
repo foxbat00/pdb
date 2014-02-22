@@ -84,11 +84,11 @@ def get_pjax(thing, id):
 		file_insts = session.query(FileInst).join(File, FileInst.file == File.id) \
 		    .join(SceneFile, File.id ==SceneFile.file_id) \
 		    .filter(SceneFile.scene_id == id).all()
-    tags = session.query(Tag.name) \
-	.select_from(SceneTag) \
-	.join(Tag, Tag.id == SceneTag.tag_id) \
-	.filter(SceneTag.scene_id == o.id) \
-	.all()
+		tags = session.query(Tag.name) \
+		    .select_from(SceneTag) \
+		    .join(Tag, Tag.id == SceneTag.tag_id) \
+		    .filter(SceneTag.scene_id == o.id) \
+		    .all()
 		    
 		return render_template('pjax/sidebar.html', scene=o, deleted=deleted, file_insts=file_insts)
 	    else:
