@@ -7,14 +7,14 @@
     <h4>Display Name:</h4> {{scene.display_name}}
     <h4>Rating:</h4> 
     {% for i in range(scene.rating|int) %}
-	<span class="glyphicon glyphicon-star">
+	<span class="glyphicon glyphicon-star"></span>
     {% else %}
 	{% if scene.rating %}
-	<span class="glyphicon glyphicon-star-empty">
+	<span class="glyphicon glyphicon-star-empty"></span>
 	{% else %}
 	    Unrated
 	{% endif %}
-    {%- endfor %}
+    {% endfor %}
     {% for fi in file_insts %}
 	<h4>File instances:</h4> <ul>
 	  <li>Name: {{fi.name}} 

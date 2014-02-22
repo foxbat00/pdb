@@ -26,10 +26,10 @@ $( document ).ready(function() {
 	    width: "10px",
 	    backgroundColor: "#000000"
 	}, 400);
+	$('#right-sidebar').css({ "padding-left": "0px" })
 	$('#button-sidebar').animate({
 	    width: "30px",
 	},400);
-	// $('#main_content').css({ "right-margin": ''});
 	$('#rightbar-toggle').text("<<");
     }
 
@@ -39,6 +39,7 @@ $( document ).ready(function() {
 	    width: "50%",
 	    backgroundColor: "#ffffff"
 	}, 400);
+	$('#right-sidebar').css({ "padding-left": "20px" })
 	$('#button-sidebar').css({'width':'calc(50% + 20px)'});
 	//$('#button-sidebar').css(
 	//    'width': 'calc(50% + 20px)'

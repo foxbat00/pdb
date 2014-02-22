@@ -211,7 +211,4 @@ if __name__ == '__main__':
 
 		    # we've matched this variation of the condition for this alias, let's stop
 		    break
-
-
-			    
-    # session.commit()
+    session.commit()
