@@ -347,6 +347,7 @@ delete from star;
 delete from series;
 delete from label;
 delete from facet_implication;
+delete from alias;
 
 */
 

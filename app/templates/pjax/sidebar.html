@@ -5,18 +5,28 @@
     {% endif %}
     {# figure out if deleted, show label-pill #}
     <h4>Display Name:</h4> {{scene.display_name}}
-    <h4>Rating:</h4> {# fixme #}
-    {% if file_insts %}
+    <h4>Rating:</h4> 
+    {% for i in range(scene.rating|int) %}
+	<span class="glyphicon glyphicon-star">
+    {% else %}
+	{% if scene.rating %}
+	<span class="glyphicon glyphicon-star-empty">
+	{% else %}
+	    Unrated
+	{% endif %}
+    {%- endfor %}
+    {% for fi in file_insts %}
 	<h4>File instances:</h4> <ul>
-	{% for fi in file_insts %}
 	  <li>Name: {{fi.name}} 
 	      <BR> Path: {{fi.Repo.path}}/{{fi.path}}
 	      <BR> Size: {{fi.F.size|filesizeformat}}
 	      <BR> Last Seen: {{fi.last_seen}}
 	  </li>
-	{% endfor %}
 	</ul>
-    {% endif %}
+    {% else %}
+	No file instances found
+    {% endfor %}
+
 {% else %} 
     No scene selected...
 {% endif %}
