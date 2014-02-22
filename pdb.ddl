@@ -46,9 +46,9 @@ CREATE TABLE scene (
     wordbag		text		NOT NULL DEFAULT '',
     tsv			tsvector	,
     rating		int		,
-    series		text		,
+    series_id		int		REFERENCES series,
     series_number	int		,
-    label		text		,
+    label_id		int		REFERENCES label,
     display_name	text		,
     confirmed		boolean		NOT NULL DEFAULT 'f'
 );
@@ -240,6 +240,7 @@ CREATE FUNCTION update_scene_display_name () RETURNS TRIGGER AS $A$
     DECLARE 
 	words text;
     BEGIN 
+	IF NEW.display_name IS NULL OR  NEW.display_name = '' THEN
 	EXECUTE $B$
 	    SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
 		|| ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag
@@ -250,8 +251,7 @@ CREATE FUNCTION update_scene_display_name () RETURNS TRIGGER AS $A$
 		WHERE scene.id = $1
 		GROUP BY scene.wordbag
 	$B$ INTO words USING NEW.id;
-	IF NEW.display_name IS NULL OR  NEW.display_name = '' THEN
-	    NEW.display_name := words;
+	NEW.display_name := words;
 	END IF;
 	return NEW;
     END;
@@ -262,7 +262,7 @@ $A$ LANGUAGE plpgsql;
     -- consider dropping the update once all scenes have a display_name
 
 CREATE TRIGGER update_scene_display_name AFTER 
-    INSERT OR UPDATE ON scene 
+    INSERT OR UPDATE OF wordbag ON scene 
 FOR EACH ROW EXECUTE PROCEDURE update_scene_display_name();
 
     
@@ -315,7 +315,7 @@ $A$ LANGUAGE plpgsql;
 
 
 CREATE TRIGGER update_scene_tsv AFTER 
-    INSERT OR UPDATE ON scene 
+    INSERT OR UPDATE OF wordbag ON scene 
 FOR EACH ROW EXECUTE PROCEDURE update_scene_tsv();
 
 CREATE TRIGGER update_scene_tsv AFTER 

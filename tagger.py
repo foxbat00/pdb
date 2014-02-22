@@ -22,9 +22,6 @@ if __name__ == '__main__':
     logfile = 'logs/log.txt'
 
 
-
-    # threading queues
-
     # set up db
     from db import *
     from models import *
@@ -98,42 +95,41 @@ if __name__ == '__main__':
 
     # add association  to  table (SceneTag, SceneStar, etc)'s target id and the scene
 
-    def addSceneAssociation(table_name,target_id, scene_id):
+    def addSceneAssociation(table_name,target_id, scene):
 
 	    # table_name: e.g. 'tag', 'star'
-	    # table:  SceneTag, SceneStar ORM objects
-
+	    
 
 	if table_name in ['label','series']:
-	    # TODO: this needs the scene table to insert... and my ddl is off b/c scene.series and scene.label are text adn not constrained.  
-	    if 
+	    if not getattr(scene, table_name+'_id'):
+		setattr(scene,table_name+'_id', target_id)
+		session.flush()
 	    
-
 	    
 	else:
-	    table = getattr(models, 'Scene'+table_name.capitalize())
+	    table = getattr(models, 'Scene'+table_name.capitalize())   # table:  SceneTag, SceneStar ORM objects
 	    col = table_name.lower()+'_id' 
-	    existing = session.query(table).filter(table.scene_id == scene_id, getattr(table,col) == target_id) .first()
+	    existing = session.query(table).filter(table.scene_id == scene.id, getattr(table,col) == target_id) .first()
 	    if not existing:
-		newrec = table(scene_id, target_id, tentative=True)
+		newrec = table(scene.id, target_id, tentative=True)
 		session.add(newrec)
 		session.flush()
-		logger.debug("Adding scene-%s association: scene_id %d %s_id %d" \
-		    % (table_name,scene_id,table_name,target_id))
-		addImplied(table_name, target_id, scene_id)
+		logger.debug("\nAdding scene-%s association: scene_id %d %s_id %d" \
+		    % (table_name,scene.id,table_name,target_id))
+		addImplied(table_name, target_id, scene)
 	    else:
-		logger.debug("existing tag for scene %d target %d (of %s)" % (scene_id, target_id, table_name))
+		logger.debug("existing tag for scene %d target %d (of %s)" % (scene.id, target_id, table_name))
 
 
 
-    def addImplied(table_name,target_id, scene_id):
+    def addImplied(table_name,target_id, scene):
 	col = table_name.lower()+'_id' 
 	table = getattr(models, table_name.capitalize())
 	implics = session.query(FacetImplic).filter(FacetImplic.predicate == target_id \
 	    , FacetImplic.predicate_type == table_name).all()
 	for i in implics:
 	    logger.debug("  add by implication")
-	    addSceneAssociation(i.target_type, i.target, scene_id)
+	    addSceneAssociation(i.target_type, i.target, scene)
 
 
     def permute(string):
@@ -148,22 +144,20 @@ if __name__ == '__main__':
 
 
     #### make scenes if needed
+    """
+	# collect files that have no scene
+	for file in session.query(File).filter(not_(exists().where(SceneFile.file_id == File.id))).yield_per(200):
 
-    # collect files that have no scene
-    for file in session.query(File).filter(not_(exists().where(SceneFile.file_id == File.id))).yield_per(200):
-
-	# make scene if none
-	scene = Scene(file.display_name)
-	session.add(scene)
-	session.flush()
-	sf = SceneFile(scene.id, file.id)
-	session.add(sf)
-	session.flush()
-	
-    session.commit()
-
-
-
+	    # make scene if none
+	    scene = Scene(file.display_name)
+	    session.add(scene)
+	    session.flush()
+	    sf = SceneFile(scene.id, file.id)
+	    session.add(sf)
+	    session.flush()
+	    
+	session.commit()
+    """
 
     #### collect the scenes and tag them
 
@@ -177,50 +171,49 @@ if __name__ == '__main__':
 	    continue
 	mulched_wordbag = mulch(agg_wordbag)
 
-	sys.stdout.write("+")
-	sys.stdout.flush()
+	#sys.stdout.write("S")
+	#sys.stdout.flush()
 	# iterate over aliases
 	for a in aliases:
 
-	    sys.stdout.write(".")
-	    sys.stdout.flush()
+	    # generate list of permutations
+	    cond_list = permute(a.name)
+
+	    #sys.stdout.write("A")
+	    #sys.stdout.flush()
+
+
 	    # for each potential target of the alias
 	    # TODO:  fix this - this is horribly inefficient...
-	    for tb in ['AliasTag', 'AliasStar', 'AliasLabel', 'AliasSeries']:
-		table = getattr(models,tb)    # requires import models, not from models import...
 
-		# get the potential targets for this alias
-		targets = session.query(table).filter(table.alias_id == a.id).all()
-		if not targets:
-		    continue
-
-		#logger.debug("     hit, trying permute")
-
-		# generate list of permutations
-		cond_list = permute(a.name)
+	    tbls = session.query(AliasTag, AliasStar,AliasSeries,AliasLabel) \
+	    .select_from(Alias)\
+	    .outerjoin(AliasTag, AliasTag.alias_id == Alias.id) \
+	    .outerjoin(AliasStar, AliasStar.alias_id == Alias.id) \
+	    .outerjoin(AliasSeries, AliasSeries.alias_id == Alias.id) \
+	    .outerjoin(AliasLabel, AliasLabel.alias_id == Alias.id) \
+	    .filter(Alias.id == a.id).first()
 
 
-		# test each condition
-		for cond in cond_list:
+	    # test each condition
+	    for cond in cond_list:
 
-		    # other ways used to exist here for deleted alias_rule table.  instead we're now just permuting
-		    # the various aliases, but it might be nice to add a way to use regexs in a rule (or tsvector) in
-		    # the future
+		# other ways used to exist here for deleted alias_rule table.  instead we're now just permuting
+		# the various aliases, but it might be nice to add a way to use regexs in a rule (or tsvector) in
+		# the future
 
-		    match = wordmatch(cond, mulched_wordbag)
-		    
+		match = wordmatch(cond, mulched_wordbag)
 
-		    # not > and > or
-		    if match:
-			# add the association between the target and the scene
-			for t in targets:  
-			    # need to lookup the tag/star/label/series id from the Alias* table+'_id'
-			    base = re.sub('^Alias', '', tb)
-			    target_id = getattr(t, base.lower()+'_id')
-			    addSceneAssociation(base,target_id, scene.id)
+		# not > and > or
+		if match:
+		    for thing in filter(None,tbls):   # e.g. AliasTag object
+		    # add the association between the target and the scene
+			base = re.sub('^Alias', '', thing.__class__.__name__)
+			target_id = getattr(thing, base.lower()+'_id')
+			addSceneAssociation(base,target_id, scene)
 
-			# we've matched this variation of the condition for this alias, let's stop
-			break
+		    # we've matched this variation of the condition for this alias, let's stop
+		    break
 
 
 			    
