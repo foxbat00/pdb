@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %} - Home{% endblock %}
 {% block content %}
-{% from "forms/macros.html" import render_field %}
     <div class=main>
 	{% if stats %}
 	    {{stats['total_file_inst']}} file instances, {{stats['total_file']}} files
@@ -9,11 +8,6 @@
 	    stars in the database: {{stats['total_data']|filesizeformat}} indexed!
 	    <BR>
 	{% endif %}
-	<div id="results">
-	    {% if not stats %}
-		{% include 'pjax/results.html' %}
-	    {% endif %}
-	</div>
     </div><! -- main -->
 {% endblock %}
 

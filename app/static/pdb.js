@@ -39,9 +39,10 @@ $( document ).ready(function() {
 	    width: "50%",
 	    backgroundColor: "#ffffff"
 	}, 400);
-	$('#button-sidebar').animate({
-	    width: "51%",
-	},400);
+	$('#button-sidebar').css({'width':'calc(50% + 20px)'});
+	//$('#button-sidebar').css(
+	//    'width': 'calc(50% + 20px)'
+	//,400);
 	$('#rightbar-toggle').text(">>");
     }
     $('#rightbar-toggle').clicktoggle(rightbar_open, rightbar_close);
@@ -50,7 +51,7 @@ $( document ).ready(function() {
     $(document).pjax('a[pjax_main]', '#main_content');
     $(document).pjax('a[pjax_rightbar]', '#right-sidebar');
     $(document).on('submit', 'form[data-pjax]', function(event) {
-      $.pjax.submit(event, '#results');
+      $.pjax.submit(event, '#main_content');
     });
     $('#right-sidebar').on('pjax:complete', rightbar_open);
 
