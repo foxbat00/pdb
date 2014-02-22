@@ -19,6 +19,9 @@ from db import *
 from models import *
 from util import *
 
+# tagger for tagging new scenes
+from tagger import makeFacets
+
 
 
 @contextmanager
@@ -132,10 +135,9 @@ def FileScanner (fileq):
     @threaded
     def considerFile(scanfile):
 
-	def createScene(file):
+	def createUpdateScene(file):
 	    scene_id = session.query(SceneFile.scene_id).filter(SceneFile.file_id == file.id).scalar()
-	    scene = session.query(Scene).get(scene_id)
-	    if not scene:
+	    if not scene_id:
 		scene = Scene(file.display_name)
 		session.add(scene)
 		session.flush()
@@ -146,6 +148,7 @@ def FileScanner (fileq):
 		m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
 		scene.rating = len(max(m,key=len)) if m else 0
 		session.commit()
+	    makeFacets(scene)
 
 
 
@@ -171,7 +174,7 @@ def FileScanner (fileq):
 		fi.deleted_on = None
 		if not f.display_name:
 		    f.display_name = fullname
-		createScene(f)
+		createUpdateScene(f)
 		session.commit()
 		return
 
@@ -194,7 +197,7 @@ def FileScanner (fileq):
 		fi.file = f.id
 		session.add(fi)
 		session.flush()
-		createScene(f)
+		createUpdateScene(f)
 		return
 	    
 	    else:
@@ -210,7 +213,7 @@ def FileScanner (fileq):
 		    existing.display_name = fullname
 
 		# if no scene exists, create
-		createScene(existing)
+		createUpdateScene(existing)
 
 		# get corresponding file_insts
 		fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file == existing.id).all()
