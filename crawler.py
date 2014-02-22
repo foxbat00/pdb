@@ -294,11 +294,22 @@ def FileUpdater(updateq):
 
 if __name__ == '__main__':
 
+    # globals
+    logfile = 'logs/log.txt'
+    validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx"
+    , ".m4v", ".mkv", ".mov", ".asf", ".mp4", ".flv", ".3gp",".asf", ".divx" ]
+    invalidExts = []
+    threadMax = 4
+
+
 
     # threading queues
     fileq = Queue()
     repoq = Queue()
     updateq = Queue()
+
+
+
     # logging
     format = "%(levelname)s (%(threadName)s): %(message)s"
     logging.basicConfig(level=logging.DEBUG, format=format)

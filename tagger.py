@@ -50,15 +50,15 @@ if __name__ == '__main__':
     def isQuoteEnclosed(mystring):
 	return re.search(r'(["\'])(?:(?=(\\?))\2.)*?\1',mystring)
 
-    # break a string down into words (alphanum) and ignore quotes and all other non-alphas
-    def mulch(mystring):
-	return re.findall(r'\w+',mystring)
-
     # iterate pairwise through a list  "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     def pairwise(iterable):
 	    a, b = tee(iterable)
 	    next(b, None)
 	    return izip(a, b)
+
+    # break a string down into words (alphanum) and ignore quotes and all other non-alphas
+    def mulch(mystring):
+	return re.findall(r'\w+',mystring)
 
     # if small is a subsequence of big, returns (start, end+1) of sequence occurence
     def contains(small, big):
@@ -96,7 +96,6 @@ if __name__ == '__main__':
 	    if not getattr(scene, table_name+'_id'):
 		setattr(scene,table_name+'_id', target_id)
 		session.flush()
-	    
 	    
 	else:
 	    table = getattr(models, 'Scene'+table_name.capitalize())   # table:  SceneTag, SceneStar ORM objects
@@ -151,12 +150,29 @@ if __name__ == '__main__':
 	session.commit()
     """
 
-    #### collect the scenes and tag them
+    #### prepare some data to speed things up, including permuted aliases, and alias-* association tables
 
     aliases = session.query(Alias).filter(Alias.active == True).all()
     apdict = {}
     for a in aliases:
 	apdict[a.name] = permute(a.name)
+
+
+    # get the tables
+
+    tbls = session.query(AliasTag, AliasStar,AliasSeries,AliasLabel) \
+    .select_from(Alias)\
+    .outerjoin(AliasTag, AliasTag.alias_id == Alias.id) \
+    .outerjoin(AliasStar, AliasStar.alias_id == Alias.id) \
+    .outerjoin(AliasSeries, AliasSeries.alias_id == Alias.id) \
+    .outerjoin(AliasLabel, AliasLabel.alias_id == Alias.id) \
+    .all()
+    
+    tbls = [filter(None,r) for r in tbls]		    # remove none elements
+    tbls = [item for sublist in tbls for item in sublist]   # flatten remaining list
+
+
+
 
     scenes = session.query(Scene).filter(Scene.confirmed != True).all()
     for scene in scenes:
@@ -173,21 +189,8 @@ if __name__ == '__main__':
 	for a in aliases:
 
 
-	    sys.stdout.write("A")
-	    sys.stdout.flush()
-
-
-	    # for each potential target of the alias
-	    # TODO:  fix this - this is horribly inefficient...
-
-	    tbls = session.query(AliasTag, AliasStar,AliasSeries,AliasLabel) \
-	    .select_from(Alias)\
-	    .outerjoin(AliasTag, AliasTag.alias_id == Alias.id) \
-	    .outerjoin(AliasStar, AliasStar.alias_id == Alias.id) \
-	    .outerjoin(AliasSeries, AliasSeries.alias_id == Alias.id) \
-	    .outerjoin(AliasLabel, AliasLabel.alias_id == Alias.id) \
-	    .filter(Alias.id == a.id).first()
-
+	    #sys.stdout.write("A")
+	    #sys.stdout.flush()
 
 	    # test each condition
 	    for cond in apdict[a.name]:
@@ -200,11 +203,10 @@ if __name__ == '__main__':
 
 		# not > and > or
 		if match:
-		    logger.debug("\nmatch")
-		    for thing in filter(None,tbls):   # e.g. AliasTag object
+		    for t in [r for r in tbls if r.alias_id == a.id]:   # e.g. AliasTag object
 		    # add the association between the target and the scene
-			base = re.sub('^Alias', '', thing.__class__.__name__)
-			target_id = getattr(thing, base.lower()+'_id')
+			base = re.sub('^Alias', '', t.__class__.__name__).lower()
+			target_id = getattr(t, base.lower()+'_id')
 			addSceneAssociation(base,target_id, scene)
 
 		    # we've matched this variation of the condition for this alias, let's stop
