@@ -208,8 +208,6 @@ class AliasSeries(Base):
  
 # tagging
 
-class AliasRule(Base):
-    __table__ = Table('alias_rule', Base.metadata, autoload=True)
 
 class FacetImplic(Base):
     __table__ = Table('facet_implication', Base.metadata, autoload=True)

@@ -330,3 +330,23 @@ CREATE TRIGGER update_scene_tsv AFTER
     INSERT OR UPDATE OF file ON file_inst
 FOR EACH ROW EXECUTE PROCEDURE update_scene_tsv();
 
+
+
+
+/*
+
+
+delete from alias_tag;
+delete from alias_series;
+delete from alias_label;
+delete from alias_star;
+delete from scene_star;
+delete from scene_tag;
+delete from tag;
+delete from star;
+delete from series;
+delete from label;
+delete from facet_implication;
+
+*/
+

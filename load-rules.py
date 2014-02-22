@@ -55,19 +55,21 @@ if __name__ == '__main__':
 
 
 
-
+    # strip enclosing spaces and quotes
+    def mystrip(mystring):
+	return mystring.strip().strip('\'"').strip()
 
     # break a string down into words and quote-enclosed phrases
-    def tokenize(string):
-	return ['"{0}"'.format(fragment) if ' ' in fragment else fragment for fragment in shlex.split(string)]
+    def tokenize(mystring):
+	return ['"{0}"'.format(fragment) if ' ' in fragment else fragment for fragment in shlex.split(mystring)]
 
     # return match if single or double-enclosed quote phrase detected
-    def isQuoteEnclosed(string):
-	return re.search(r'(["\'])(?:(?=(\\?))\2.)*?\1',string)
+    def isQuoteEnclosed(mystring):
+	return re.search(r'(["\'])(?:(?=(\\?))\2.)*?\1',mystring)
 
     # break a string down into words (alphanum) and ignore quotes and all other non-alphas
-    def mulch(string):
-	return re.findall(r'\w+',string)
+    def mulch(mystring):
+	return re.findall(r'\w+',mystring)
 
     # iterate pairwise through a list  "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     def pairwise(iterable):
@@ -110,7 +112,7 @@ if __name__ == '__main__':
 	    aliases = mo.group(8)
 	    
 	    # remove enclosing quotes, extra space
-	    name = name.strip()
+	    name = mystrip(name)
 
 		
 	    #clean up implic
@@ -124,8 +126,8 @@ if __name__ == '__main__':
 		    except ValueError:
 			logger.debug("Malformed implication line %d: %s" % (linei,implic))
 			sys.exit()
-		    val = val.strip()
-		    facet = facet.strip()
+		    val = mystrip(val)
+		    facet = mystrip(facet)
 		    implic_dct[facet] = val
 
 	    # clean up aliases
@@ -137,7 +139,11 @@ if __name__ == '__main__':
 	    aliases = aliases +','+name # add the name as an alias
 	    aliases = aliases.lower()
 	    al = re.split(',',aliases)  # split on coma
-	    alias_list = [al.strip() for al in al if al]  # remove empty strings from trailing commas
+		# remove empty strings from trailing commas
+	    alias_list = [mystrip(a) for a in al if mystrip(a)]  
+	    if not alias_list:
+		logger.debug("ERROR - empty alias list - shouldn't happen")
+		sys.exit()
 
 
 	    # facet_type, name, implic_dct, alias_list
@@ -189,8 +195,8 @@ if __name__ == '__main__':
 	    if implic_dct:
 		for k,v in implic_dct.iteritems():
 		    # k is the facet (tag); v is the facet-value (xyz)
-		    v = v.strip()
-		    k = k.strip()
+		    v = mystrip(v)
+		    k = mystrip(k)
 		    itable = getattr(models, k.capitalize())
 		    vlower = v.lower()
 		    tar = session.query(itable).filter(func.lower(itable.name) == vlower).first()
