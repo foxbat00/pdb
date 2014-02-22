@@ -4,7 +4,7 @@
 	<span class="label label-danger">Deleted</span>
     {% endif %}
     {# figure out if deleted, show label-pill #}
-    <h4>Display Name:</h4> {{scene.display_name}}
+    <h4>Display Name:</h4> <input type="text" class="form-control" value="{{scene.display_name}}">
     <h4>Rating:</h4> 
     {% for i in range(scene.rating|int) %}
 	<span class="glyphicon glyphicon-star"></span>

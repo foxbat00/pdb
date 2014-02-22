@@ -26,7 +26,11 @@ $( document ).ready(function() {
 	    width: "10px",
 	    backgroundColor: "#000000"
 	}, 400);
-	$('#right-sidebar').css({ "padding-left": "0px" })
+	$('#right-sidebar').css({ 
+	    "padding-left": "0px",
+	}).css({
+	    "padding-right": "0px"
+	})
 	$('#button-sidebar').animate({
 	    width: "30px",
 	},400);
@@ -39,7 +43,11 @@ $( document ).ready(function() {
 	    width: "50%",
 	    backgroundColor: "#ffffff"
 	}, 400);
-	$('#right-sidebar').css({ "padding-left": "20px" })
+	$('#right-sidebar').css({ 
+	    "padding-left": "20px" 
+	}).css({
+	    "padding-right": "20px"
+	})
 	$('#button-sidebar').css({'width':'calc(50% + 20px)'});
 	//$('#button-sidebar').css(
 	//    'width': 'calc(50% + 20px)'

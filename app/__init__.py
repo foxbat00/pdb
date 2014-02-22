@@ -7,19 +7,19 @@ from config import *
 app = Flask(__name__) #create our application object
 
 
-from app.content.views import mod as contentModule
-app.register_blueprint(contentModule)
+# disable until needed
 
-from app.watch.views import mod as watchModule
-app.register_blueprint(watchModule)
+#from app.content.views import mod as contentModule
+#app.register_blueprint(contentModule)
 
-from app.browse.views import mod as browseModule
-app.register_blueprint(browseModule)
 
 app.config.from_object('config.BaseConfiguration')
 
 
 from models import *
+from app.views import *
+from app.forms import *
+
 
 #hack to get reload on template changes when templates not passed through render_template:
 def extra_files(extradirs):
