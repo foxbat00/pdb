@@ -10,7 +10,6 @@ from Queue import Queue
 import logging 
 from contextlib import contextmanager
 from functools import wraps
-from twisted.internet.threads import deferToThread
 import shlex
 from itertools import tee, izip
 
@@ -44,16 +43,16 @@ if __name__ == '__main__':
 
 
     # break a string down into words and quote-enclosed phrases
-    def tokenize(string):
-	return ['"{0}"'.format(fragment) if ' ' in fragment else fragment for fragment in shlex.split(string)]
+    def tokenize(mystring):
+	return ['"{0}"'.format(fragment) if ' ' in fragment else fragment for fragment in shlex.split(mystring)]
 
     # return match if single or double-enclosed quote phrase detected
-    def isQuoteEnclosed(string):
-	return re.search(r'(["\'])(?:(?=(\\?))\2.)*?\1',string)
+    def isQuoteEnclosed(mystring):
+	return re.search(r'(["\'])(?:(?=(\\?))\2.)*?\1',mystring)
 
     # break a string down into words (alphanum) and ignore quotes and all other non-alphas
-    def mulch(string):
-	return re.findall(r'\w+',string)
+    def mulch(mystring):
+	return re.findall(r'\w+',mystring)
 
     # iterate pairwise through a list  "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     def pairwise(iterable):
@@ -80,16 +79,9 @@ if __name__ == '__main__':
 
     # searches for condition in mulched_wordbag
     def wordmatch(condition, mulched_wordbag):
-	match = True
-	terms = tokenize(condition)		    
-	for t in terms:
-	    if not isQuoteEnclosed(t):
-		if t not in mulched_wordbag:
-		    return None
-	    else:
-		if not contains(mulch(t),mulched_wordbag):
-		    return None
-	return True
+	if contains(mulch(condition),mulched_wordbag):
+	    return True
+	return False
 		    
 		    
 
@@ -137,8 +129,8 @@ if __name__ == '__main__':
 	ret.append(string)
 	ret.append(re.sub(r'\s','',string))   # remove spaces
 	ret.append(re.sub(r'\W',' ',string))  # change non-alphanums to space (to cause splitting)
-
-	return ret
+	ret.append(re.sub(r'\W','',string))  # change non-alphanums to nothing
+	return set(ret)  # uniques the list
 	
 
 
@@ -162,6 +154,9 @@ if __name__ == '__main__':
     #### collect the scenes and tag them
 
     aliases = session.query(Alias).filter(Alias.active == True).all()
+    apdict = {}
+    for a in aliases:
+	apdict[a.name] = permute(a.name)
 
     scenes = session.query(Scene).filter(Scene.confirmed != True).all()
     for scene in scenes:
@@ -171,16 +166,15 @@ if __name__ == '__main__':
 	    continue
 	mulched_wordbag = mulch(agg_wordbag)
 
-	#sys.stdout.write("S")
-	#sys.stdout.flush()
+	sys.stdout.write("S")
+	sys.stdout.flush()
+
 	# iterate over aliases
 	for a in aliases:
 
-	    # generate list of permutations
-	    cond_list = permute(a.name)
 
-	    #sys.stdout.write("A")
-	    #sys.stdout.flush()
+	    sys.stdout.write("A")
+	    sys.stdout.flush()
 
 
 	    # for each potential target of the alias
@@ -196,7 +190,7 @@ if __name__ == '__main__':
 
 
 	    # test each condition
-	    for cond in cond_list:
+	    for cond in apdict[a.name]:
 
 		# other ways used to exist here for deleted alias_rule table.  instead we're now just permuting
 		# the various aliases, but it might be nice to add a way to use regexs in a rule (or tsvector) in
@@ -206,6 +200,7 @@ if __name__ == '__main__':
 
 		# not > and > or
 		if match:
+		    logger.debug("\nmatch")
 		    for thing in filter(None,tbls):   # e.g. AliasTag object
 		    # add the association between the target and the scene
 			base = re.sub('^Alias', '', thing.__class__.__name__)
