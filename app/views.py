@@ -84,36 +84,39 @@ def search_view():
 
 
 # used to get the tags, stars, etc. for autocomplete
-@app.route('/get/facet-names/<facet>/', methods=('GET', 'POST'))
+@app.route('/facetnames/<facet>', methods=('GET', 'POST'))
 def get_facet_name(facet):
-    if "XMLHttpRequest" in request.headers:
+    if request.is_xhr:
 	app.logger.debug("get facet names for facet %s" % facet)
 	search = request.args.get('term')
 	tbl = getattr(models, facet.lower().capitalize())
-	rs = session.query(tbl.name, tbl.id) \
+	rs = session.query(tbl.name) \
 	    .filter( tbl.name.ilike(search+'%') ) \
 	    .limit(10).all()
 	if rs:
-	    js = lvdictFrom(rs)
+	    js = lvdict(rs)
 	    app.logger.debug("returning...%d results:\n\n %s" % (len(rs), js))
 	    return json.dumps(js)
 	else:
 	    app.logger.debug("no results found, returning ERROR")
 	    return json.dumps('ERROR') 
     else:
+	app.logger.debug("no XHR header")
+	app.logger.debug("headers received:  %s" % request.headers)
 	return redirect('/')
 
 
 
 
 
-# used by both the sidebar to get scene details and by sidebar ajax for getting things (to see if they exsit mainly)
+# used by both the sidebar to get scene details and by sidebar ajax for getting things (to see if they exist mainly)
 @app.route('/get/<thing>/<id>', methods=('GET', 'POST'))
 def get_jax(thing, id):
     app.logger.debug("inside get_pjax")
     if "X-PJAX" in request.headers:			### PJAX only
 	app.logger.debug("xjax detected ")
 	if thing and is_number(id):
+	    id = int(id)
 	    app.logger.debug("in get_pjax for thing %s and id %d" % (thing, id))
 	    tbl = getattr(models, thing.lower().capitalize())
 	    o = session.query(tbl).get(id)
@@ -135,9 +138,9 @@ def get_jax(thing, id):
 	    else:
 		app.logger.debug("get not yet implemented for type %s" % thing)
 	else:   
-	    app.logger.debug("XPJAX detected, but no id offered in url")
-    elif 'XMLHttpRequest' in request.headers:
-	tbl = getattr(models.thing.lower().capitalize())
+	    app.logger.debug("XPJAX detected, but no id offered in url or id was not a number (q by str not yet)")
+    elif request.is_xhr:
+	tbl = getattr(models,thing.lower().capitalize())
 	o = None
 	# try to retrieve 
 	if is_number(id):
@@ -151,10 +154,7 @@ def get_jax(thing, id):
 	    # see http://stackoverflow.com/questions/7102754/jsonify-a-sqlalchemy-result-set-in-flask
 	    return o.to_json()
 	else:
-	    json.dumps('')
-	    
-	    
-	return json.dumps(js)
+	    return json.dumps('')
     else:
 	return redirect('/')
 		    
@@ -186,10 +186,10 @@ def update_jax(thing, col, value):
 @app.route('/add/<thing>/', methods=('POST',) )
 def add_jax(thing):
     app.logger.debug("inside add")
-    if  "XMLHttpRequest" in request.headers:  # in > or
+    if  request.is_xhr:  # in > or
 	app.logger.debug("xjax detected ")
 	if thing:
-	    dct = json.loads(request.data)
+	    dct = get_json()
 	    tbl = getattr(models, thing.lower().capitalize())
 	    q = session.query(tbl)
 	    for (k,v) in dct:
@@ -200,7 +200,7 @@ def add_jax(thing):
 		session.add(new)
 		session.commit(new)
 		return json.dumps('')
-	    else
+	    else:
 		app.logger.debug("add failed because existing")
 		return json.dumps('')
 	else: 

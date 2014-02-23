@@ -252,29 +252,28 @@ $$  LANGUAGE sql;   --plpgsql;
 
 -- get the words for a scene
 
-CREATE FUNCTION get_words_for_scene (int) RETURNS TEXT AS $A$
+CREATE OR REPLACE FUNCTION get_words_for_scene (int) RETURNS TEXT AS $A$
     SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
-	|| ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag
+	|| ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag || ' ' || scene.display_name
 	FROM scene
 	JOIN scene_file ON (scene_file.scene_id = scene.id)
 	JOIN file ON (file.id = scene_file.file_id)
 	JOIN file_inst ON (file_inst.file = file.id)
 	WHERE scene.id = $1
-	GROUP BY scene.wordbag
+	GROUP BY scene.wordbag, scene.display_name
 $A$ LANGUAGE sql;
 
 
 
 -- assign a display name from the agg wordbag if none set
 
-CREATE FUNCTION update_scene_display_name () RETURNS TRIGGER AS $A$
+CREATE OR REPLACE FUNCTION update_scene_display_name () RETURNS TRIGGER AS $A$
     DECLARE 
 	words text;
     BEGIN 
-	IF NEW.display_name IS NULL OR  NEW.display_name = '' THEN
 	EXECUTE $B$
 	    SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
-		|| ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag
+		|| ' ' || STRING_AGG(file.wordbag, ' ')  
 		FROM scene
 		JOIN scene_file ON (scene_file.scene_id = scene.id)
 		JOIN file ON (file.id = scene_file.file_id)
@@ -282,8 +281,10 @@ CREATE FUNCTION update_scene_display_name () RETURNS TRIGGER AS $A$
 		WHERE scene.id = $1
 		GROUP BY scene.wordbag
 	$B$ INTO words USING NEW.id;
-	NEW.display_name := words;
+	IF NEW.display_name IS NULL OR  NEW.display_name = '' THEN
+	    NEW.display_name := words;
 	END IF;
+	NEW.wordbag := words;
 	return NEW;
     END;
 $A$ LANGUAGE plpgsql;
@@ -296,9 +297,12 @@ CREATE TRIGGER update_scene_display_name AFTER
     INSERT OR UPDATE OF wordbag ON scene 
 FOR EACH ROW EXECUTE PROCEDURE update_scene_display_name();
 
+CREATE TRIGGER update_scene_display_name AFTER 
+    INSERT OR UPDATE ON scene_file
+FOR EACH ROW EXECUTE PROCEDURE update_scene_display_name();
     
 
-CREATE FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
+CREATE OR REPLACE  FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
     DECLARE 
 	words text;
 	sceneid int[];
@@ -328,7 +332,7 @@ CREATE FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
 	FOREACH scene IN ARRAY sceneid LOOP
 	    EXECUTE $B$
 		SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
-		    || ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag
+		    || ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.display_name
 		    FROM scene
 		    JOIN scene_file ON (scene_file.scene_id = scene.id)
 		    JOIN file ON (scene_file.file_id = file.id)

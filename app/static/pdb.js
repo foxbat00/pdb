@@ -17,8 +17,14 @@ $.fn.clicktoggle = function(a, b) {
 // now you can use it elsewhere in place of existing .toggle
 
 
+
+
+////////////////////////  document  ready  /////////////////////
+
+
 $( document ).ready(function() {
 
+    console.log("document ready")
 
     function rightbar_close() {
 	$('#rightbar-toggle').text("<<");
@@ -63,9 +69,105 @@ $( document ).ready(function() {
       $.pjax.submit(event, '#main_content');
     });
     $('#right-sidebar').on('pjax:complete', rightbar_open);
+    $('#right-sidebar').on('pjax:end', rightbar_setup);
 
 
 
+////////////////////////  right-sidebar pjax:complete   /////////////////////
 
+
+    function rightbar_setup() {
+	console.log("pjax-complete being called")
+
+	// facets with tag-it
+	$('#mytags').tagit({
+	    autocomplete: {
+		delay: 500,
+		minLength: 2,
+		source: '/facetnames/tag'
+	    },
+	    removeConfirmation: true,
+	    itemName: 'tags',
+	    fieldName: 'elements',
+	    // function (defined in {} ) is invoked with arguments event and ui
+	    beforeTagAdded: function(event, ui) {
+		// do something special
+		if (!ui.duringInitialization) {
+		    console.log(ui.tag);
+		    // figure out if tag already exists on server
+		    $.ajax({
+			type: 'POST',
+			url: '/get/tag/'.concat(ui.tag),
+			success: function(response){
+			    console.log("response = #"+response+"#");
+			    var ret=JSON.parse(response); 
+			    if (ret == "ERROR") {
+				// tag does not exist on server
+				if(!confirm_add(ui.tag)) {
+				    //cancel
+				    return false;
+				}
+				//create association
+				if(!create_assoc('scene_tag',ui.tag)) {
+				    //failed
+				    return false;
+				}
+			    }
+			}
+		    });
+		}
+	    }
+	});
+
+
+	function create_assoc(linktbl,tag,scene) {
+	    var values = {
+		'scene_id':scene,
+		'tag_id':tag
+	    };
+		    
+	    $.ajax({
+		type: 'POST',
+		url: '/add/'+linktbl+'/',
+		data: values,
+		contentType: 'application/json; charset=utf-8',
+		dataType: 'json'
+	    });
+	}
+
+	function add_new(thing,values) {
+	    $.ajax({
+		type: 'POST',
+		url: '/add/'+thing+'/',
+		contentType: 'application/json; charset=utf-8',
+		dataType: 'json',
+		data: values
+	    }); 
+	}
+
+
+	function confirm_add(tag) {
+	    BootstrapDialog.show({
+		    message: 'Confirm adding tag: "'+tag+'"',
+		    buttons: [{
+			label: 'Confirm new tag "'+tag+'"',
+			action: add_new('tag', {'name': tag } )
+		    }, {
+			label: 'Cancel',
+			cssClass: 'btn-primary',
+			action: function(dialogItself){
+			    dialogItself.close();
+			}
+		    }]
+		}); 
+	}
+
+	// save after delay on display_name
+	var timerid;
+	$('#sidebar-display_name').keyup(function() {
+	  var form = this;
+	  clearTimeout(timerid);
+	  timerid = setTimeout(function() { form.submit(); }, 2000);
+	});
+    }
 }); // document-ready close
-
