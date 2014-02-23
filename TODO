@@ -1,7 +1,7 @@
 
 
 
- - consider whether to implement sidebar as lots of forms which each return a new element (or not,
+ ## consider whether to implement sidebar as lots of forms which each return a new element (or not,
     or one form which returns a new sidebar
 
 
@@ -12,3 +12,6 @@
 
 
 - show series/label, but as pill, and only one
+
+
+ ## consider refactoring tagger/crawler/views to abstract a common search module

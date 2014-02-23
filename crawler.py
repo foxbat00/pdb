@@ -136,7 +136,10 @@ def FileScanner (fileq):
     def considerFile(scanfile):
 
 	def createUpdateScene(file):
+	    if args.noscenes:
+		return
 	    scene_id = session.query(SceneFile.scene_id).filter(SceneFile.file_id == file.id).scalar()
+	    scene = None
 	    if not scene_id:
 		scene = Scene(file.display_name)
 		session.add(scene)
@@ -144,11 +147,13 @@ def FileScanner (fileq):
 		sf = SceneFile(scene.id, file.id)
 		session.add(sf)
 		session.commit()
+	    else:
+		scene = session.query(Scene).get(scene_id)
 	    if not scene.rating:
 		m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
 		scene.rating = len(max(m,key=len)) if m else 0
 		session.commit()
-	    makeFacets(scene)
+	    makeFacets(scene)  # calls into tagger
 
 
 
@@ -326,9 +331,13 @@ if __name__ == '__main__':
 
 
     # options parsing
+    # ARGPARSE argparse
     parser = argparse.ArgumentParser(description='PDB crawler')
 
     parser.add_argument('-x','--exclude', nargs='+', type=int, help='repositories to exclude from crawl, by id')
+    parser.add_argument('--noscenes',  action='store_true', \
+	help='Operate only at the File and FileInst leve - do not create scenes, or apply facets')
+		
     args = parser.parse_args()
 
     excludeRepos = []

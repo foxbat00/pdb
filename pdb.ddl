@@ -7,6 +7,14 @@ DROP TABLE file CASCADE;
 DROP TABLE file_inst CASCADE;
 DROP TABLE repository CASCADE;
 
+
+------------------------------------------------------------------
+
+--                  TOP LEVEL TABLES			        --
+
+------------------------------------------------------------------
+
+
 CREATE TABLE repository (
     id			serial		PRIMARY KEY,
     path		varchar(500)	NOT NULL
@@ -53,9 +61,14 @@ CREATE TABLE scene (
     confirmed		boolean		NOT NULL DEFAULT 'f'
 );
 
+CREATE TABLE alias (
+    id			serial		PRIMARY KEY,
+    name		text		NOT NULL UNIQUE,
+    active		boolean		NOT NULL DEFAULT 't'
+);
 
--- no scene_label or scene_series since scene cannot belong to more than 1 of either
 
+-- -- -- -- -- FACETS -- -- -- -- -- -- -- 
 
 CREATE TABLE tag (
     id			serial		PRIMARY KEY,
@@ -68,6 +81,26 @@ CREATE TABLE star (
     name		text		NOT NULL UNIQUE,
     gender		varchar(3)	NOT NULL
 );
+
+
+CREATE TABLE label (
+    id			serial		PRIMARY KEY,
+    name		name		NOT NULL UNIQUE
+);
+
+CREATE TABLE series (
+    id			serial		PRIMARY KEY,
+    name		text		NOT NULL UNIQUE
+);
+
+
+------------------------------------------------------------------
+
+--                  scene_* mapping tables		        --
+
+------------------------------------------------------------------
+
+
 
 CREATE TABLE scene_file (
     scene_id		int		NOT NULL REFERENCES scene,
@@ -95,21 +128,14 @@ CREATE TABLE scene_star (
     CONSTRAINT scene_star_pkey PRIMARY KEY (scene_id,star_id)
 );
 
-CREATE TABLE alias (
-    id			serial		PRIMARY KEY,
-    name		text		NOT NULL UNIQUE,
-    active		boolean		NOT NULL DEFAULT 't'
-);
+-- no scene_label or scene_series since scene cannot belong to more than 1 of either
 
-CREATE TABLE label (
-    id			serial		PRIMARY KEY,
-    name		name		NOT NULL UNIQUE
-);
+------------------------------------------------------------------
 
-CREATE TABLE series (
-    id			serial		PRIMARY KEY,
-    name		text		NOT NULL UNIQUE
-);
+--                  alias* mapping tables		        --
+
+------------------------------------------------------------------
+
 
 CREATE TABLE alias_star (
     alias_id		int		NOT NULL REFERENCES alias,
@@ -172,6 +198,11 @@ CREATE TABLE facet_implication (
     CONSTRAINT UNIQUE(predicate, predicate_type, target, target_type, operator)
 );
 
+------------------------------------------------------------------
+
+--                  functions & triggers			--
+
+------------------------------------------------------------------
 
 --------------------
 

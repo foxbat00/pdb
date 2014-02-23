@@ -90,7 +90,10 @@ def get_pjax(thing, id):
 		    .filter(SceneTag.scene_id == o.id) \
 		    .all()
 		    
-		return render_template('pjax/sidebar.html', scene=o, deleted=deleted, file_insts=file_insts)
+		return render_template('pjax/sidebar.html',  \
+		    scene=o, deleted=deleted, file_insts=file_insts, \
+		    tags=tags
+		)
 	    else:
 		app.logger.debug("get not yet implemented for type %s" % thing)
 	else: 

@@ -63,7 +63,7 @@ def mulch(mystring):
 def contains(small, big):
     for i in xrange(len(big)-len(small)+1):
 	for j in xrange(len(small)):
-	    if type(big[i+j]) == type('') == type(small[j]):
+	    if type(big[i+j]) == type('') == type(small[j]):  # not typo, python allows chained ==
 		if big[i+j].lower() != small[j].lower():
 		    break
 	    else:
@@ -101,7 +101,7 @@ def addSceneAssociation(table_name,target_id, scene):
 	col = table_name.lower()+'_id' 
 	existing = session.query(table).filter(table.scene_id == scene.id, getattr(table,col) == target_id) .first()
 	if not existing:
-	    newrec = table(scene.id, target_id, tentative=True)
+	    newrec = table(scene.id, target_id, tentative=True)  # table:  SceneTag, SceneStar ORM objects
 	    session.add(newrec)
 	    session.flush()
 	    logger.debug("\nAdding scene-%s association: scene_id %d %s_id %d" \
@@ -109,6 +109,7 @@ def addSceneAssociation(table_name,target_id, scene):
 	    addImplied(table_name, target_id, scene)
 	else:
 	    logger.debug("existing tag for scene %d target %d (of %s)" % (scene.id, target_id, table_name))
+	    addImplied(table_name, target_id, scene)
 
 
 
@@ -180,7 +181,7 @@ def makeFacets(scene, apdict=None, aliases=None, tbls=None):
     if not tbls:
 	tbls = getTbls()
 
-    agg_wordbag = session.query(func.get_words_for_scene(scene.id)).first()[0].strip()
+    agg_wordbag = session.query(func.get_words_for_scene(scene.id)).first()[0].strip().lower()
     if not agg_wordbag:
 	logger.debug("EMPTY get_words_for_scene on scene.id %d" % scene.id)
 	return
@@ -214,7 +215,7 @@ def makeFacets(scene, apdict=None, aliases=None, tbls=None):
 		    addSceneAssociation(base,target_id, scene)
 
 		# we've matched this variation of the condition for this alias, let's stop
-		break
+		continue
 
 	
 
