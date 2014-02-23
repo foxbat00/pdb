@@ -29,6 +29,28 @@ def active_files(*fields):
 
 
 
+# converts instance inst of class cls to json
+def to_json(inst, cls):
+    """
+    Jsonify the sql alchemy query result.
+    """
+    convert = dict()
+    # add your coversions for things like datetime's 
+    # and what-not that aren't serializable.
+    d = dict()
+    for c in cls.__table__.columns:
+        v = getattr(inst, c.name)
+        if c.type in convert.keys() and v is not None:
+            try:
+                d[c.name] = convert[c.type](v)
+            except:
+                d[c.name] = "Error:  Failed to covert using ", str(convert[c.type])
+        elif v is None:
+            d[c.name] = str()
+        else:
+            d[c.name] = v
+    return json.dumps(d)
+
 ###### auto reflection tables and some inits #####  
 
 
@@ -53,6 +75,8 @@ class File(Base):
 	return session.query(FileInst).filter(FileInst.deleted_on == None, FileInst.marked_delete != True)\
 	    .filter(FileInst.file == self.id).first()
 	
+    def json(self):
+        return to_json(self, self.__class__)
 
 
 
@@ -97,6 +121,9 @@ class Scene(Base):
 	    .filter(SceneFile.scene_id == self.id) \
 	    .first()
 
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 
 
@@ -106,6 +133,9 @@ class Tag(Base):
 	return "<Tag id=%d name=\"%s\">" % (self.id, self.name)
     def __init__(self, name):
 	self.name = name 
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 class Star(Base):
     __table__ = Table('star', Base.metadata, autoload=True)
@@ -114,6 +144,9 @@ class Star(Base):
     def __init__(self, name):
 	self.name = name 
 	self.gender='f'
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 class Label(Base):
     __table__ = Table('label', Base.metadata, autoload=True)
@@ -121,6 +154,9 @@ class Label(Base):
 	return "<Label id=%d name=\"%s\">" % (self.id, self.name)
     def __init__(self, name):
 	self.name = name 
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 class Alias(Base):
     __table__ = Table('alias', Base.metadata, autoload=True)
@@ -128,6 +164,9 @@ class Alias(Base):
 	return "<Alias id=%d name=\"%s\">" % (self.id, self.name)
     def __init__(self, name):
 	self.name = name 
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 class Series(Base):
     __table__ = Table('series', Base.metadata, autoload=True)
@@ -135,6 +174,9 @@ class Series(Base):
 	return "<Series id=%d name=\"%s\">" % (self.id, self.name)
     def __init__(self, name):
 	self.name = name 
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 
 
@@ -149,6 +191,9 @@ class SceneFile(Base):
 	self.tentative = tentative
     def __repr__(self): 
 	return "<SceneFile scene_id=%d file_id=%d tentative=%s>" % (self.scene_id, self.file_id, self.tentative)
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 class SceneTag(Base):
     __table__ = Table('scene_tag', Base.metadata, autoload=True)
@@ -159,6 +204,9 @@ class SceneTag(Base):
 	self.tentative = tentative
     def __repr__(self): 
 	return "<SceneTag scene_id=%d tag_id=%d tentative=%s>" % (self.scene_id, self.tag_id, self.tentative)
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 class SceneStar(Base):
     __table__ = Table('scene_star', Base.metadata, autoload=True)
@@ -169,6 +217,9 @@ class SceneStar(Base):
 	self.tentative = tentative
     def __repr__(self): 
 	return "<SceneStar scene_id=%d star_id=%d tentative=%s>" % (self.scene_id, self.star_id, self.tentative)
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 
 
@@ -183,6 +234,9 @@ class AliasTag(Base):
 
     def __repr__(self): 
 	return "<AliasTag alias_id=%d tag_id=%d tentative=%s" % (self.alias_id, self.tag_id, self.tentive)
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 
 class AliasStar(Base):
@@ -195,6 +249,9 @@ class AliasStar(Base):
 
     def __repr__(self): 
 	return "<AliasStar alias_id=%d star_id=%d tentative=%s" % (self.alias_id, self.star_id, self.tentive)
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 class AliasLabel(Base):
     __table__ = Table('alias_label', Base.metadata, autoload=True)
@@ -206,6 +263,9 @@ class AliasLabel(Base):
 
     def __repr__(self): 
 	return "<AliasLabel alias_id=%d label_id=%d tentative=%s" % (self.alias_id, self.label_id, self.tentive)
+    def json(self):
+        return to_json(self, self.__class__)
+
 
 class AliasSeries(Base):
     __table__ = Table('alias_series', Base.metadata, autoload=True)
@@ -215,9 +275,11 @@ class AliasSeries(Base):
 	self.series_id = series_id
 	self.tentative = tentative
 
-
     def __repr__(self): 
 	return "<AliasSeries alias_id=%d series_id=%d tentative=%s" % (self.alias_id, self.series_id, self.tentive)
+    def json(self):
+        return to_json(self, self.__class__)
+
 
  
 # tagging

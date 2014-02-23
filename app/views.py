@@ -27,19 +27,32 @@ row2dict = lambda r: {c.name: getattr(r,c.name) for c in r.__table__.columns}
     
 
 # autocomplete label value dicts to feed jquery
-def lvdict(labelsvalues):
+def lvdictPairs(labelsvalues):
     js = []
     for (l,v) in labelsvalues:
 	js.append({"label":l,"value":v})
     return js
 	
+# autocomplete label value dicts to feed jquery
+def lvdict(mylist):
+    js = []
+    for v in mylist:
+	js.append({"label":v,"value":v})
+    return js
+	
+
 
 # replace whitespace not enclosed in quotes with % for sql searching
 def percentSeparator(str):
     return '%'.join(['"{0}"'.format(fragment) if ' ' in fragment else fragment
 	for fragment in shlex.split(str)])
 
-
+def is_number(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
 
 @app.route('/test/', methods=('GET','POST') )
 def test_view():
@@ -69,44 +82,90 @@ def search_view():
     return redirect('/')
 
 
-@app.route('/get/<thing>/<int:id>', methods=('GET', 'POST'))
-def get_pjax(thing, id):
+
+# used to get the tags, stars, etc. for autocomplete
+@app.route('/get/facet-names/<facet>/', methods=('GET', 'POST'))
+def get_facet_name(facet):
+    if "XMLHttpRequest" in request.headers:
+	app.logger.debug("get facet names for facet %s" % facet)
+	search = request.args.get('term')
+	tbl = getattr(models, facet.lower().capitalize())
+	rs = session.query(tbl.name, tbl.id) \
+	    .filter( tbl.name.ilike(search+'%') ) \
+	    .limit(10).all()
+	if rs:
+	    js = lvdictFrom(rs)
+	    app.logger.debug("returning...%d results:\n\n %s" % (len(rs), js))
+	    return json.dumps(js)
+	else:
+	    app.logger.debug("no results found, returning ERROR")
+	    return json.dumps('ERROR') 
+    else:
+	return redirect('/')
+
+
+
+
+
+# used by both the sidebar to get scene details and by sidebar ajax for getting things (to see if they exsit mainly)
+@app.route('/get/<thing>/<id>', methods=('GET', 'POST'))
+def get_jax(thing, id):
     app.logger.debug("inside get_pjax")
-    if "X-PJAX" in request.headers:
-	app.logger.debug("xpjax detected ")
-	if thing and id:
+    if "X-PJAX" in request.headers:			### PJAX only
+	app.logger.debug("xjax detected ")
+	if thing and is_number(id):
 	    app.logger.debug("in get_pjax for thing %s and id %d" % (thing, id))
 	    tbl = getattr(models, thing.lower().capitalize())
 	    o = session.query(tbl).get(id)
 	    # scenes
 	    if thing == 'scene':    
 		deleted = o.isDeleted()
+		facets = {}
 		file_insts = session.query(FileInst).join(File, FileInst.file == File.id) \
 		    .join(SceneFile, File.id ==SceneFile.file_id) \
 		    .filter(SceneFile.scene_id == id).all()
-		tags = session.query(Tag.name) \
+		facets['tags'] = sfrToList(session.query(Tag.name) \
 		    .select_from(SceneTag) \
 		    .join(Tag, Tag.id == SceneTag.tag_id) \
 		    .filter(SceneTag.scene_id == o.id) \
-		    .all()
+		    .all())
 		    
 		return render_template('pjax/sidebar.html',  \
-		    scene=o, deleted=deleted, file_insts=file_insts, \
-		    tags=tags
-		)
+		    scene=o, deleted=deleted, file_insts=file_insts, facets=facets)
 	    else:
 		app.logger.debug("get not yet implemented for type %s" % thing)
-	else: 
+	else:   
 	    app.logger.debug("XPJAX detected, but no id offered in url")
-    return redirect('/')
+    elif 'XMLHttpRequest' in request.headers:
+	tbl = getattr(models.thing.lower().capitalize())
+	o = None
+	# try to retrieve 
+	if is_number(id):
+	    id = int(id)
+	    o = session.query(tbl).get(id)
+	else:
+	    name = id
+	    o = session.query(tbl).filter(tbl.name.ilike(name)).first()
+	# prepare response
+	if o:
+	    # see http://stackoverflow.com/questions/7102754/jsonify-a-sqlalchemy-result-set-in-flask
+	    return o.to_json()
+	else:
+	    json.dumps('')
+	    
+	    
+	return json.dumps(js)
+    else:
+	return redirect('/')
 		    
 
 
+# used for the sidebar to edit scene info
 @app.route('/update/<thing>/<col>/<value>', methods=('GET','POST') )
-def update_pjax(thing, col, value):
+def update_jax(thing, col, value):
     app.logger.debug("inside update_pjax")
-    if "X-PJAX" in request.headers:
-	app.logger.debug("xpjax detected ")
+    if "X-PJAX" in request.headers or "XMLHttpRequest" in request.headers:
+	app.logger.debug("xjax detected ")
 	if thing and col and value:
 	    app.logger.debug("in update_pjax for thing %s, col %s, and value %s" % (thing, col, value))
 	    tbl = getattr(models, thing.lower.capitalize())
@@ -122,5 +181,30 @@ def update_pjax(thing, col, value):
     return redirect('/')
 		    
 
-    
-    return False
+
+# used for adding stars, tags, etc and the corresponding mapping entries to scene_*
+@app.route('/add/<thing>/', methods=('POST',) )
+def add_jax(thing):
+    app.logger.debug("inside add")
+    if  "XMLHttpRequest" in request.headers:  # in > or
+	app.logger.debug("xjax detected ")
+	if thing:
+	    dct = json.loads(request.data)
+	    tbl = getattr(models, thing.lower().capitalize())
+	    q = session.query(tbl)
+	    for (k,v) in dct:
+		q.filter(getattr(tbl,k.lower())==v)
+	    ex = q.first()
+	    if not ex:
+		new = tbl(**dct)
+		session.add(new)
+		session.commit(new)
+		return json.dumps('')
+	    else
+		app.logger.debug("add failed because existing")
+		return json.dumps('')
+	else: 
+	    app.logger.debug("XPJAX detected, but no thing or col or value offered in url")
+    return redirect('/')
+		    
+

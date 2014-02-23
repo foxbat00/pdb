@@ -65,27 +65,7 @@ $( document ).ready(function() {
     $('#right-sidebar').on('pjax:complete', rightbar_open);
 
 
-    // facets with tag-it
-    $("#myTags").tagit({
-        autocomplete: {
-	    delay: 0, 
-	    minLength: 2,
-	    source:  'get/facetsforscene/tag/'
-	},
-	removeConfirmation: "True",
-	itemName: 'tags',
-	fieldName: 'elements'
-	//allowSpaces: "True"
-    });
 
-
-    // save after delay on display_name
-    var timerid;
-    jQuery("#sidebar-display_name").keyup(function() {
-      var form = this;
-      clearTimeout(timerid);
-      timerid = setTimeout(function() { form.submit(); }, 2000);
-    });
 
 }); // document-ready close
 
