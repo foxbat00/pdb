@@ -108,10 +108,10 @@ def addSceneAssociation(table_name,target_id, scene):
 	    session.flush()
 	    logger.debug("\nAdding scene-%s association: scene_id %d %s_id %d" \
 		% (table_name,scene.id,table_name,target_id))
-	    addImplied(table_name, target_id, scene.id)
+	    addImplied(table_name, target_id, scene)
 	else:
 	    logger.debug("existing tag for scene %d target %d (of %s)" % (scene.id, target_id, table_name))
-	    addImplied(table_name, target_id, scene.id)
+	    addImplied(table_name, target_id, scene)
 
 
 

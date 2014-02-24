@@ -179,6 +179,9 @@ def FileScanner (fileq):
 		fi.deleted_on = None
 		if not f.display_name:
 		    f.display_name = fullname
+		if not fi.ext:
+		    name, ext= os.path.splitext(fname)
+		    fi.ext = ext
 		createUpdateScene(f)
 		session.commit()
 		return

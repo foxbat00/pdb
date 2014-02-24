@@ -105,9 +105,7 @@ $( document ).ready(function() {
 		    };
 		},
 		results: function(data, page) {
-		    return {
-			results: data.suppliers
-		    };
+		    return results;
 		}
 	    },
 	    createSearchChoice:function(term, data) { 
@@ -120,12 +118,18 @@ $( document ).ready(function() {
 	}); // close select2
 
 	$('#mytags').on("change", function (e)  {
-	    if (e.added) {
-		// ajax to add new tag if not existing
+	    console.log("change "+JSON.stringify({val:e.val, added:e.added, removed:e.removed})); 
+	    console.log(e.currentTarget.id);
 
+	    if(e.added){
+		$.post( "/view/"+e.currentTarget.id+"/tag/add", { tagAdd: e.added.text } );
 	    }
-	});
+	    else if(e.removed){
+		$.post( "/view/"+e.currentTarget.id+"/tag/remove", { tagRemove: e.removed.text } );
+	    }
+	    
 
+	});
 
 /*
 
