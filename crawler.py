@@ -140,15 +140,15 @@ def FileScanner (fileq):
 		return
 	    scene_id = session.query(SceneFile.scene_id).filter(SceneFile.file_id == file.id).scalar()
 	    scene = None
-	    if not scene_id:
+	    if scene_id:
+		scene = session.query(Scene).get(scene_id)
+	    else:
 		scene = Scene(file.display_name)
 		session.add(scene)
 		session.flush()
 		sf = SceneFile(scene.id, file.id)
 		session.add(sf)
 		session.commit()
-	    else:
-		scene = session.query(Scene).get(scene_id)
 	    if not scene.rating:
 		m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
 		scene.rating = len(max(m,key=len)) if m else 0

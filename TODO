@@ -1,6 +1,11 @@
 
 
 
+####### something is seriously fucked up with the tagger because it keeps hitting existing tags on scene 12 for all kinds of targets.  scene variable is probably getting clobbered somewhere.
+
+
+
+
  ## consider whether to implement sidebar as lots of forms which each return a new element (or not,
     or one form which returns a new sidebar
 

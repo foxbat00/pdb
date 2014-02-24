@@ -91,11 +91,13 @@ def addSceneAssociation(table_name,target_id, scene):
 	# table_name: e.g. 'tag', 'star'
 	
 
+    # set the field on scene for label and series since they're n:1
     if table_name in ['label','series']:
 	if not getattr(scene, table_name+'_id'):
 	    setattr(scene,table_name+'_id', target_id)
 	    session.flush()
 	
+    # add links in mapping tables for star adn tag
     else:
 	table = getattr(models, 'Scene'+table_name.capitalize())   # table:  SceneTag, SceneStar ORM objects
 	col = table_name.lower()+'_id' 
@@ -106,10 +108,10 @@ def addSceneAssociation(table_name,target_id, scene):
 	    session.flush()
 	    logger.debug("\nAdding scene-%s association: scene_id %d %s_id %d" \
 		% (table_name,scene.id,table_name,target_id))
-	    addImplied(table_name, target_id, scene)
+	    addImplied(table_name, target_id, scene.id)
 	else:
 	    logger.debug("existing tag for scene %d target %d (of %s)" % (scene.id, target_id, table_name))
-	    addImplied(table_name, target_id, scene)
+	    addImplied(table_name, target_id, scene.id)
 
 
 
