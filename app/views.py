@@ -42,6 +42,17 @@ def lvdict(mylist):
 	
 
 
+def getFacetString(taglist):
+    tagstring = []
+    for i in range (len(taglist)):
+	tagstring.append( str(taglist[i].id) +":"+taglist[i].name)
+	if i < len(taglist) -1: # not last
+	    tagstring.append(',')
+
+    tagstring = ''.join(tagstring)
+    return tagstring
+
+
 # replace whitespace not enclosed in quotes with % for sql searching
 def percentSeparator(str):
     return '%'.join(['"{0}"'.format(fragment) if ' ' in fragment else fragment
@@ -72,7 +83,7 @@ def search_view():
 		.join(SceneFile, SceneFile.scene_id == Scene.id) \
 		.join(File, File.id == SceneFile.file_id) \
 		.join(FileInst, FileInst.file == File.id) \
-		.filter(Scene.display_name.ilike('%'+query+'%') ) \
+		.filter(Scene.wordbag.ilike('%'+query+'%') ) \
 		.filter(FileInst.deleted_on == None, FileInst.marked_delete == False) 
 # TODO: add a checkbox to results page that includes deleted items, flag deleted items with pill
 # or include a separate list at the bottom of deleted items, or something like that
@@ -88,15 +99,20 @@ def search_view():
 def get_facet_name(facet):
     if request.is_xhr:
 	app.logger.debug("get facet names for facet %s" % facet)
-	search = request.args.get('term')
+	search = request.args.get('q')
+	if not search:
+	    app.logger.debug('ERROR - no search term detected')
+	    abort()
 	tbl = getattr(models, facet.lower().capitalize())
 	rs = session.query(tbl.name) \
 	    .filter( tbl.name.ilike(search+'%') ) \
 	    .limit(10).all()
 	if rs:
-	    js = lvdict(rs)
+	    #js = lvdict(rs)
+	    #return json.dumps(js)
+	    return rs.json()
+	    # TODO:  FIXME -- need to figure out better way of serializing/outputting my objects
 	    app.logger.debug("returning...%d results:\n\n %s" % (len(rs), js))
-	    return json.dumps(js)
 	else:
 	    app.logger.debug("no results found, returning ERROR")
 	    return json.dumps('ERROR') 
@@ -127,12 +143,13 @@ def get_jax(thing, id):
 		file_insts = session.query(FileInst).join(File, FileInst.file == File.id) \
 		    .join(SceneFile, File.id ==SceneFile.file_id) \
 		    .filter(SceneFile.scene_id == id).all()
-		facets['tags'] = sfrToList(session.query(Tag.name) \
+		taglist = session.query(Tag) \
 		    .select_from(SceneTag) \
 		    .join(Tag, Tag.id == SceneTag.tag_id) \
 		    .filter(SceneTag.scene_id == o.id) \
-		    .all())
-		    
+		    .all()
+		tagstring = getFacetString(taglist)
+		facets['taglist'] = tagstring
 		return render_template('pjax/sidebar.html',  \
 		    scene=o, deleted=deleted, file_insts=file_insts, facets=facets)
 	    else:
@@ -152,7 +169,7 @@ def get_jax(thing, id):
 	# prepare response
 	if o:
 	    # see http://stackoverflow.com/questions/7102754/jsonify-a-sqlalchemy-result-set-in-flask
-	    return o.to_json()
+	    return o._json()
 	else:
 	    return json.dumps('')
     else:

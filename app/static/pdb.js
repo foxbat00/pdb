@@ -79,44 +79,84 @@ $( document ).ready(function() {
     function rightbar_setup() {
 	console.log("pjax-complete being called")
 
-	// facets with tag-it
-	$('#mytags').tagit({
-	    autocomplete: {
-		delay: 500,
-		minLength: 2,
-		source: '/facetnames/tag'
+	// facets 
+	$('#mytags').select2({
+
+	    placeholder: "Tags ...",
+	    minimumInputLength: 2,
+	    multiple: true,
+	    tokenSeparators: [","],
+	    createSearchChoice: function(term, data) {
+		if ($(data).filter(function() {
+		    return this.name.localeCompare(term) === 0;
+		}).length === 0) {
+		    return {id: 0, name: term};
+		}
+
 	    },
-	    removeConfirmation: true,
-	    itemName: 'tags',
-	    fieldName: 'elements',
-	    // function (defined in {} ) is invoked with arguments event and ui
-	    beforeTagAdded: function(event, ui) {
-		// do something special
-		if (!ui.duringInitialization) {
-		    console.log(ui.tag);
-		    // figure out if tag already exists on server
-		    $.ajax({
-			type: 'POST',
-			url: '/get/tag/'.concat(ui.tag),
-			success: function(response){
-			    console.log("response = #"+response+"#");
-			    var ret=JSON.parse(response); 
-			    if (ret == "ERROR") {
-				// tag does not exist on server
-				if(!confirm_add(ui.tag)) {
-				    //cancel
-				    return false;
-				}
-				//create association
-				if(!create_assoc('scene_tag',ui.tag)) {
-				    //failed
-				    return false;
+	    ajax: {
+		url: '/facetnames/tag',
+		quietMillis: 500,
+		dataType: 'jsonp',
+		type: 'GET',
+		data: function (term, page) {
+		    return {
+			q: term, // search term
+		    };
+		},
+		results: function(data, page) {
+		    return {
+			results: data.suppliers
+		    };
+		}
+	    },
+	    createSearchChoice:function(term, data) { 
+		if ($(data).filter(function() { 
+		    return this.text.localeCompare(term)===0; }).length===0) {
+			return {id:term, text:term};
+		    } 
+		}
+	    
+	}); // close select2
+
+	$('#mytags').on("change", function (e)  {
+	    if (e.added) {
+		// ajax to add new tag if not existing
+
+	    }
+	});
+
+
+/*
+
+		// function (defined in {} ) is invoked with arguments event and ui
+		beforeTagAdded: function(event, ui) {
+		    // do something special
+		    if (!ui.duringInitialization) {
+			console.log(ui.tag);
+			// figure out if tag already exists on server
+			$.ajax({
+			    type: 'POST',
+			    url: '/get/tag/'.concat(ui.tag),
+			    success: function(response){
+				console.log("response = #"+response+"#");
+				var ret=JSON.parse(response); 
+				if (ret == "ERROR") {
+				    // tag does not exist on server
+				    if(!confirm_add(ui.tag)) {
+					//cancel
+					return false;
+				    }
+				    //create association
+				    if(!create_assoc('scene_tag',ui.tag)) {
+					//failed
+					return false;
+				    }
 				}
 			    }
-			}
-		    });
+			});
+		    }
 		}
-	    }
 	});
 
 
@@ -163,11 +203,12 @@ $( document ).ready(function() {
 	}
 
 	// save after delay on display_name
-	var timerid;
-	$('#sidebar-display_name').keyup(function() {
-	  var form = this;
-	  clearTimeout(timerid);
-	  timerid = setTimeout(function() { form.submit(); }, 2000);
-	});
+	//var timerid;
+	//$('#sidebar-display_name').keyup(function() {
+	//  var form = this;
+	//  clearTimeout(timerid);
+	//  timerid = setTimeout(function() { form.submit(); }, 2000);
+	//});
+	*/
     }
 }); // document-ready close

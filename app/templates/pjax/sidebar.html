@@ -17,18 +17,12 @@
 	{% else %}
 	    Unrated
 	{% endif %}
-    {% endfor %}
+    {%- endfor %}
     {% if facets  %}
-	{% if facets['tags'] %}
 	    <h4>Tags:</h4>
-	    <form method='post' action=/update/tagsforscene/?> 
 		<ul id="mytags">
-		    {% for t in facets['tags']: %}
-			<li>{{t}}<li>
-		    {% endfor %}
+		<input type='hidden' id="mytags" style="width: 500px;" value= {{ facets['taglist'] }} />
 		</ul>
-	    </form>
-	{% endif %}
     {% endif %}
 
 	
