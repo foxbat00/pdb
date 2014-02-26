@@ -86,6 +86,13 @@ def wordmatch(condition, mulched_wordbag):
 
 # add association  to  table (SceneTag, SceneStar, etc)'s target id and the scene
 
+
+def getTargetName(table_name, target_id):
+    t = getattr(models, table_name.capitalize())
+    return session.query(t).filter(t.id == target_id).first()
+
+
+
 def addSceneAssociation(table_name,target_id, scene):
 
 	# table_name: e.g. 'tag', 'star'
@@ -101,16 +108,17 @@ def addSceneAssociation(table_name,target_id, scene):
     else:
 	table = getattr(models, 'Scene'+table_name.capitalize())   # table:  SceneTag, SceneStar ORM objects
 	col = table_name.lower()+'_id' 
-	existing = session.query(table).filter(table.scene_id == scene.id, getattr(table,col) == target_id) .first()
+	existing = session.query(table).filter(table.scene_id == scene.id, getattr(table,col) == target_id).first()
 	if not existing:
 	    newrec = table(scene.id, target_id, tentative=True)  # table:  SceneTag, SceneStar ORM objects
 	    session.add(newrec)
 	    session.flush()
-	    logger.debug("\nAdding scene-%s association: scene_id %d %s_id %d" \
-		% (table_name,scene.id,table_name,target_id))
+	    logger.debug("\nAdding scene-%s association: scene_id %d %s_id %d %s " \
+		% (table_name,scene.id,table_name,target_id, getTargetName(table_name,target_id)))
 	    addImplied(table_name, target_id, scene)
 	else:
-	    logger.debug("existing tag for scene %d target %d (of %s)" % (scene.id, target_id, table_name))
+	    logger.debug("existing tag for scene %d target %d %s (of %s)" \
+		% (scene.id, target_id, getTargetName(table_name, target_id), table_name))
 	    addImplied(table_name, target_id, scene)
 
 
@@ -121,7 +129,8 @@ def addImplied(table_name,target_id, scene):
     implics = session.query(FacetImplic).filter(FacetImplic.predicate == target_id \
 	, FacetImplic.predicate_type == table_name).all()
     for i in implics:
-	logger.debug("  add by implication")
+	logger.debug("  add by implication: #%s# scene %d target %d %s" \
+	    % (i,scene.id,target_id,getTargetName(table_name,target_id)))
 	addSceneAssociation(i.target_type, i.target, scene)
 
 

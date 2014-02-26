@@ -388,13 +388,16 @@ FOR EACH ROW EXECUTE PROCEDURE update_scene_tsv();
 /*
 
 
+delete from scene_star;
+delete from scene_tag;
+delete from scene_file;
+delete from scene;
+
 update scene set label_id = NULL, series_id = NULL;
 delete from alias_tag;
 delete from alias_series;
 delete from alias_label;
 delete from alias_star;
-delete from scene_star;
-delete from scene_tag;
 delete from tag;
 delete from star;
 delete from series;
