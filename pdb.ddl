@@ -270,7 +270,14 @@ $A$ LANGUAGE sql;
 CREATE OR REPLACE FUNCTION update_scene_display_name () RETURNS TRIGGER AS $A$
     DECLARE 
 	words text;
+	dn text;
+	sceneid int;
     BEGIN 
+	IF TG_TABLE_NAME = 'scene' THEN
+	    sceneid := NEW.id;
+	ELSIF TG_TABLE_NAME = 'scene_file' THEN
+	    sceneid := NEW.scene_id;
+	END IF;
 	EXECUTE $B$
 	    SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
 		|| ' ' || STRING_AGG(file.wordbag, ' ')  
@@ -280,11 +287,21 @@ CREATE OR REPLACE FUNCTION update_scene_display_name () RETURNS TRIGGER AS $A$
 		JOIN file_inst ON (file_inst.file = file.id)
 		WHERE scene.id = $1
 		GROUP BY scene.wordbag
-	$B$ INTO words USING NEW.id;
-	IF NEW.display_name IS NULL OR  NEW.display_name = '' THEN
-	    NEW.display_name := words;
+	$B$ INTO words USING scene_id;
+	IF TG_TABLE_NAME = 'scene' THEN
+	    IF NEW.display_name IS NULL OR  NEW.display_name = '' THEN
+		NEW.display_name := words;
+	    END IF;
+	    NEW.wordbag := words;
+	ELSIF TG_TABLE_NAME = 'scene_file' THEN
+	    EXECUTE $C$
+		SELECT display_name FROM scene WHERE scene.id = $1
+	    $C$ INTO dn USING sceneid;
+	    IF dn IS NULL OR  dn = '' THEN
+		UPDATE SCENE SET display_name = words where id = sceneid;
+	    END IF;
+	    UPDATE scene SET wordbag = words WHERE scene.id = sceneid
 	END IF;
-	NEW.wordbag := words;
 	return NEW;
     END;
 $A$ LANGUAGE plpgsql;
@@ -371,6 +388,7 @@ FOR EACH ROW EXECUTE PROCEDURE update_scene_tsv();
 /*
 
 
+update scene set label_id = NULL, series_id = NULL;
 delete from alias_tag;
 delete from alias_series;
 delete from alias_label;

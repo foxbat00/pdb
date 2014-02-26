@@ -17,7 +17,7 @@ import argparse
 import string
 
 
-
+#### does not touch scenes, only tags, stars, labels, series, facet_implications, aliases and mapping tables
 
 
 # set up db

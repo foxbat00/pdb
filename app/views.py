@@ -96,7 +96,7 @@ def search_view():
 
 # used to get the tags, stars, etc. for autocomplete
 @app.route('/facetnames/<facet>', methods=('GET', 'POST'))
-def get_facet_name(facet):
+def get_facet_names(facet):
     if request.is_xhr:
 	app.logger.debug("get facet names for facet %s" % facet)
 	search = request.args.get('q')
@@ -111,7 +111,6 @@ def get_facet_name(facet):
 	    #js = lvdict(rs)
 	    #return json.dumps(js)
 	    return rs.json()
-	    # TODO:  FIXME -- need to figure out better way of serializing/outputting my objects
 	    app.logger.debug("returning...%d results:\n\n %s" % (len(rs), js))
 	else:
 	    app.logger.debug("no results found, returning ERROR")

@@ -97,7 +97,7 @@ def addSceneAssociation(table_name,target_id, scene):
 	    setattr(scene,table_name+'_id', target_id)
 	    session.flush()
 	
-    # add links in mapping tables for star adn tag
+    # add links in mapping tables for star and tag
     else:
 	table = getattr(models, 'Scene'+table_name.capitalize())   # table:  SceneTag, SceneStar ORM objects
 	col = table_name.lower()+'_id' 

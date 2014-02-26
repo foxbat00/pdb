@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 import datetime
 import re, sys, os
+import json
 
 from util import *
 from db import *
@@ -37,21 +38,41 @@ def to_json(inst, cls):
     convert = dict()
     # add your coversions for things like datetime's 
     # and what-not that aren't serializable.
+    convert['INTERGER()'] = lambda x: int(x)
+    convert['VARCHAR()'] = lambda x: str(x)
+    convert['TEXT()'] = lambda x: str(x)
+    convert['DATE()'] = lambda x: str(x)
+    convert['BOOLEAN()'] = lambda x: bool(x)
+
+
     d = dict()
     for c in cls.__table__.columns:
         v = getattr(inst, c.name)
-        if c.type in convert.keys() and v is not None:
+	ctype = str(c.type)
+	if re.search(r'^VARCHAR',ctype): # convert varchars so we don't have to define a lambda for each
+	    ctype = 'VARCHAR()'
+        if ctype in convert.keys() and v is not None:
             try:
-                d[c.name] = convert[c.type](v)
+                d[c.name] = convert[ctype](v)
             except:
-                d[c.name] = "Error:  Failed to covert using ", str(convert[c.type])
+                d[c.name] = "Error:  Failed to covert using ", str(convert[ctype])
         elif v is None:
             d[c.name] = str()
         else:
             d[c.name] = v
     return json.dumps(d)
 
+
+def jsonifyList(lst):
+    return [l.json() for l in lst]
+
+
+
+
+
+
 ###### auto reflection tables and some inits #####  
+
 
 
 class Repository(Base):

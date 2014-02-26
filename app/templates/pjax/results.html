@@ -10,6 +10,9 @@
 	<tr><td><a pjax_rightbar href="/get/scene/{{r.id}}">{{r.display_name}}</a></td></tr>
     {% endfor %}
     </table>
+    <script>
+	var scene_id := {{r.id}}
+    </script>
 
 {% else %} 
     <i>No results found {% if query %} for "{{query}}" {% endif %}</i>
