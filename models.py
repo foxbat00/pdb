@@ -139,8 +139,6 @@ class ForgoneFile(Base):
 	return modJoin(self.Repo.path,self.path,self.name)
 
 
-class Scene(Base):
-    __table__ = Table('scene', Base.metadata, autoload=True)
 
 class Scene(Base):
     __table__ = Table('scene', Base.metadata, autoload=True)
@@ -222,6 +220,8 @@ class Series(Base):
 
 class SceneFile(Base):
     __table__ = Table('scene_file', Base.metadata, autoload=True)
+    Scene = relationship('Scene',backref='SceneFile')
+    File = relationship('File',backref='SceneFile')
 
     def __init__(self, scene_id, file_id, tentative=True):
 	self.scene_id = scene_id 

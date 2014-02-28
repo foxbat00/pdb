@@ -206,11 +206,13 @@ def add_jax(thing):
 	app.logger.debug("xjax detected ")
 	if thing:
 	    dct = get_json()
+	    logger.debug("received json = #%s#" % dct)
 	    tbl = getattr(models, thing.lower().capitalize())
 	    q = session.query(tbl)
 	    for (k,v) in dct:
 		q.filter(getattr(tbl,k.lower())==v)
 	    ex = q.first()
+	    logger.debug("translated query:= %s" % q)
 	    if not ex:
 		new = tbl(**dct)
 		session.add(new)

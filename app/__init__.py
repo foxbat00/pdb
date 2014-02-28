@@ -53,7 +53,7 @@ def index():
     stats['total_series'] =	"{:,}".format(int(session.query(Series).count()  ))
     stats['total_data'] =	int( \
 	session.query(func.sum(File.size)) \
-	.join(FileInst, File.id == FileInst.file) \
+	.join(FileInst, File.id == FileInst.file_id) \
 	.filter(FileInst.deleted_on == None, FileInst.marked_delete != True) \
 	.scalar()   )
     return render_template('index.html', stats=stats)

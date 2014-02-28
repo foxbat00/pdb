@@ -122,10 +122,10 @@ $( document ).ready(function() {
 	    console.log(e.currentTarget.id);
 
 	    if(e.added){
-		$.post( "/view/"+e.currentTarget.id+"/tag/add", { tagAdd: e.added.text } );
+		$.post( "/view/"+scene_id+"/tag/add", { tagAdd: e.added.text } );
 	    }
 	    else if(e.removed){
-		$.post( "/view/"+e.currentTarget.id+"/tag/remove", { tagRemove: e.removed.text } );
+		$.post( "/view/"+scene_id+"/tag/remove", { tagRemove: e.removed.text } );
 	    }
 	    
 

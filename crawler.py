@@ -139,19 +139,26 @@ def FileScanner (fileq):
 	def createUpdateScene(file):
 	    if args.no_scenes:
 		return
-	    scene = session.query(SceneFile).filter(SceneFile.file_id == file.id).scalar()
-	    if not scene:
+
+	    scene_id = session.query(SceneFile.scene_id).filter(SceneFile.file_id == file.id).all()
+	    scene = None
+
+	    if not scene_id:
 		scene = Scene(file.display_name)
 		session.add(scene)
 		session.commit()
 		sf = SceneFile(scene.id, file.id)
 		session.add(sf)
 		session.commit()
-	    if not scene.rating:
-		m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
-		scene.rating = len(max(m,key=len)) if m else 0
-		session.commit()
-	    makeFacets(scene)  # calls into tagger
+	    else:
+		scene = session.query(Scene).get(scene_id)
+
+	    if scene:
+		if not scene.rating:
+		    m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
+		    scene.rating = len(max(m,key=len)) if m else 0
+		    session.commit()
+		makeFacets(scene)  # calls into tagger
 
 
 
