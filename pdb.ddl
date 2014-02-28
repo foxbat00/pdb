@@ -44,6 +44,7 @@ CREATE TABLE file_inst (
     marked_delete	boolean		NOT NULL,
     processed		boolean		NOT NULL,
     last_seen		date		NOT NULL,
+    added_on		date		NOT NULL DEFAULT now(),
     file_id		int		NOT NULL REFERENCES file
 );
 
@@ -66,6 +67,19 @@ CREATE TABLE alias (
     name		text		NOT NULL UNIQUE,
     active		boolean		NOT NULL DEFAULT 't'
 );
+
+
+
+-- don't like the spelling?   http://grammarist.com/usage/forego-forgo/
+CREATE TABLE forgone_file (
+    id			serial		PRIMARY KEY,
+    repository_id	int		REFERENCES repository,
+    path		text		NOT NULL,
+    name		text		NOT NULL,
+    added_on		date		NOT NULL DEFAULT now(),
+    last_seen		date		NOT NULL
+);
+
 
 
 -- -- -- -- -- FACETS -- -- -- -- -- -- -- 
@@ -240,7 +254,7 @@ $$  LANGUAGE sql;   --plpgsql;
 
 --  get the set of active files
 
-CREATE FUNCTION active_files () RETURNS SETOF file AS $$
+CREATE OR REPLACE FUNCTION active_files () RETURNS SETOF file AS $$
     SELECT * FROM file
     WHERE EXISTS(
 	SELECT * FROM file JOIN file_inst ON (file_inst.file_id = file.id) 

@@ -232,6 +232,9 @@ def makeFacets(scene, apdict=None, aliases=None, tbls=None):
 		# we've matched this variation of the condition for this alias, let's stop
 		continue
 
+    session.commit()
+    return
+
 	
 
 

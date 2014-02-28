@@ -103,14 +103,14 @@ class File(Base):
 
 class FileInst(Base):
     __table__ = Table('file_inst', Base.metadata, autoload=True)
-    #Repo = relationship('Repository',backref='FileInsts')
-    #F = relationship('File',backref='FileInsts')
+    Repo = relationship('Repository',backref='FileInsts')
+    F = relationship('File',backref='FileInsts')
 
 
-    def __init__(self, name, path, repo, file_id):
+    def __init__(self, name, path, repo_id, file_id):
 	self.name = name
 	self.path = path
-	self.repository_id = repo
+	self.repository_id = repo_id
 	self.last_seen = datetime.datetime.now()
 	self.marked_delete = False
 	self.processed = False
@@ -123,6 +123,24 @@ class FileInst(Base):
     def getFullName(self):
 	return modJoin(self.Repo.path,self.path,self.name)
 
+class ForgoneFile(Base):
+    __table__ = Table('forgone_file', Base.metadata, autoload=True)
+
+    def __init__(self, name, path, repo_id):
+	self.name = name
+	self.path = path
+	self.repository_id = repo_id
+	self.last_seen = datetime.datetime.now()
+
+    def __repr__(self): 
+	return "<ForgoneFile id=%d name=\"%s\">" % (self.id, modJoin(self.Repo.path,self.path,self.name))
+
+    def getFullName(self):
+	return modJoin(self.Repo.path,self.path,self.name)
+
+
+class Scene(Base):
+    __table__ = Table('scene', Base.metadata, autoload=True)
 
 class Scene(Base):
     __table__ = Table('scene', Base.metadata, autoload=True)

@@ -137,9 +137,9 @@ def FileScanner (fileq):
     def considerFile(scanfile):
 
 	def createUpdateScene(file):
-	    if args.noscenes:
+	    if args.no_scenes:
 		return
-	    scene = session.query(SceneFile.scene_id).filter(SceneFile.file_id == file.id).scalar()
+	    scene = session.query(SceneFile).filter(SceneFile.file_id == file.id).scalar()
 	    if not scene:
 		scene = Scene(file.display_name)
 		session.add(scene)
@@ -167,9 +167,29 @@ def FileScanner (fileq):
 	logger.info("considering %s" % fullname)
 	fsize = os.path.getsize(fullname)
 
-	# shortcut - if this file matches by filename and size, let's avoid md5summing it.
+	# prevent adding files we can't read for whatever reason
+	    # TODO: consider also checking for hash: d41d8cd98f00b204e9800998ecf8427e
+	if fsize == 0:
+	    logger.debug("====  possible error - zero file size:   %s" % fullname)
+	    # when this happens, we need to distinghuish between things like the repo not being
+	    # mounted and simply running across a file of size 0...
+	    ex = session.query(ForgoneFile) \
+		.filter(ForgoneFile.repository_id == repo.id) \
+		.filter(ForgoneFile.name == fname) \
+		.filter(ForgoneFile.path == path) \
+		.first()
+	    if ex:
+		ex.last_seen = datetime.datetime.now()
+	    else:
+		new = ForgoneFile(fname, path, repo.id)
+		session.add(new)
+	    session.flush()
+	    return
+
+	# check for existing
 	q = (session.query(FileInst,File).join(File).filter(File.size == fsize, FileInst.name == fname \
 	    , FileInst.path == path, FileInst.repository_id == repo.id).first() )
+	# shortcut - if this file matches by filename and size, let's avoid md5summing it.
 	if q:
 	    (fi,f) = q
 	    logger.debug(" shortcutting")
@@ -246,26 +266,26 @@ def FileScanner (fileq):
 		(fi,r) = q
 		d = fi.deleted_on
 		if d and d > datetime.datetime.now() - datetime.timedelta(weeks=1):
-		    logger.debug("      reactivating old instance")
-		    fi,r = fis
-		    fi.name = fname
-		    fi.path = path
-		    fi.repository_id = repo.id
-		    fi.last_seen = datetime.datetime.now()
-		    deleted_on = None
-		    session.commit()
-		    session.expunge_all()
-		    return
+		    if args.enable_file_inst_move or fi.name == fname:
+			logger.debug("      reactivating old instance")
+			fi,r = fis
+			fi.name = fname
+			fi.path = path
+			fi.repository_id = repo.id
+			fi.last_seen = datetime.datetime.now()
+			deleted_on = None
+			session.commit()
+			session.expunge_all()
+			return
 
-		# otherwise, create a new file instance
-		else:
-		    logger.debug("      creating new instance")
-		    fi = FileInst(fname,path,repo.id,existing.id)
-		    session.add(fi)
-		    session.commit()
-		    session.expunge_all()
-		    return
-			
+	    # otherwise, create a new file instance
+	    logger.debug("      creating new instance")
+	    fi = FileInst(fname,path,repo.id,existing.id)
+	    session.add(fi)
+	    session.commit()
+	    session.expunge_all()
+	    return
+		    
 			    
     logger.debug("fileScanner running")
     while True:
@@ -342,8 +362,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PDB crawler')
 
     parser.add_argument('-x','--exclude', nargs='+', type=int, help='repositories to exclude from crawl, by id')
-    parser.add_argument('--noscenes',  action='store_true', \
+    parser.add_argument('--no_scenes',  action='store_true', \
 	help='Operate only at the File and FileInst leve - do not create scenes, or apply facets')
+    parser.add_argument('--enable_file_inst_move',  action='store_true', \
+	help='When a file_inst has been deleted less than a week ago, reactivate and overwrite rather than' \
+	    + 'create a new record')
 		
     args = parser.parse_args()
 
