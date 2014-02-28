@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from functools import wraps
 import shlex
 from itertools import tee, izip
+import argparse
 
 
 
@@ -25,7 +26,6 @@ from db import *
 from models import *
 import models # needed for getattr magic
 from util import *
-session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
 
 # logging
 format = "%(levelname)s (%(threadName)s): %(message)s"
@@ -87,16 +87,27 @@ def wordmatch(condition, mulched_wordbag):
 # add association  to  table (SceneTag, SceneStar, etc)'s target id and the scene
 
 
-def getTargetName(table_name, target_id):
-    t = getattr(models, table_name.capitalize())
-    return session.query(t).filter(t.id == target_id).first()
 
 
 
-def addSceneAssociation(table_name,target_id, scene):
+def addSceneAssociation(session, table_name,target_id, scene):
 
 	# table_name: e.g. 'tag', 'star'
 	
+    def getTargetName(table_name, target_id):
+	t = getattr(models, table_name.capitalize())
+	return session.query(t).filter(t.id == target_id).first()
+
+    def addImplied(table_name,target_id, scene):
+	col = table_name.lower()+'_id' 
+	table = getattr(models, table_name.capitalize())
+	implics = session.query(FacetImplic).filter(FacetImplic.predicate == target_id \
+	    , FacetImplic.predicate_type == table_name).all()
+	for i in implics:
+	    logger.debug("  add by implication: #%s# scene %d target %d %s" \
+		% (i,scene.id,target_id,getTargetName(table_name,target_id)))
+	    addSceneAssociation(i.target_type, i.target, scene)
+
 
     # set the field on scene for label and series since they're n:1
     if table_name in ['label','series']:
@@ -123,16 +134,6 @@ def addSceneAssociation(table_name,target_id, scene):
 
 
 
-def addImplied(table_name,target_id, scene):
-    col = table_name.lower()+'_id' 
-    table = getattr(models, table_name.capitalize())
-    implics = session.query(FacetImplic).filter(FacetImplic.predicate == target_id \
-	, FacetImplic.predicate_type == table_name).all()
-    for i in implics:
-	logger.debug("  add by implication: #%s# scene %d target %d %s" \
-	    % (i,scene.id,target_id,getTargetName(table_name,target_id)))
-	addSceneAssociation(i.target_type, i.target, scene)
-
 
 def permute(string):
     ret = []
@@ -146,7 +147,7 @@ def permute(string):
 
 
 
-def getAliasesAndDict():
+def getAliasesAndDict(session):
     aliases = session.query(Alias).filter(Alias.active == True).all()
     apdict = {}
     for a in aliases:
@@ -154,7 +155,7 @@ def getAliasesAndDict():
     return (aliases,apdict)
 
     
-def getTbls():
+def getTbls(session):
     tbls = session.query(AliasTag, AliasStar,AliasSeries,AliasLabel) \
     .select_from(Alias)\
     .outerjoin(AliasTag, AliasTag.alias_id == Alias.id) \
@@ -171,7 +172,7 @@ def getTbls():
 
 ########################################################################
 # 
-#  makeFacts(scene, [apdict, aliases, tbls]
+#  makeFacts(session, scene, [apdict, aliases, tbls]
 # 
 #  from crawler, can apply aliases and implications to a scene
 # 
@@ -184,7 +185,7 @@ def getTbls():
 
 
 
-def makeFacets(scene, apdict=None, aliases=None, tbls=None):
+def makeFacets(session, scene, apdict=None, aliases=None, tbls=None):
 
     # skip if scene is locked
     if scene.confirmed:
@@ -227,12 +228,13 @@ def makeFacets(scene, apdict=None, aliases=None, tbls=None):
 		# add the association between the target and the scene
 		    base = re.sub('^Alias', '', t.__class__.__name__).lower()
 		    target_id = getattr(t, base.lower()+'_id')
-		    addSceneAssociation(base,target_id, scene)
+		    addSceneAssociation(session, base,target_id, scene)
 
 		# we've matched this variation of the condition for this alias, let's stop
 		continue
 
     session.commit()
+    session.expunge_all()
     return
 
 	
@@ -243,39 +245,50 @@ def makeFacets(scene, apdict=None, aliases=None, tbls=None):
 
 if __name__ == '__main__':
 
+    session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
 
-    """
-    #### make scenes if needed
-    # collect files that have no scene
-    for file in session.query(File).filter(not_(exists().where(SceneFile.file_id == File.id))).yield_per(200):
+    # options parsing
+    # ARGPARSE argparse
+    parser = argparse.ArgumentParser(description='PDB tagger')
 
-	# make scene if none
-	scene = Scene(file.display_name)
-	m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
-	scene.rating = len(max(m,key=len)) if m else 0
-	session.add(scene)
-	session.flush()
-	sf = SceneFile(scene.id, file.id)
-	session.add(sf)
-	session.flush()
-	    
-    session.commit()
-    """
+    parser.add_argument('--make_scenes',  action='store_true', \
+	help='Make scenes for any files without an entry in scene_file before tagging')
+		
+    args = parser.parse_args()
 
 
+    if(args.make_scenes):
+	#### make scenes if needed
+	# collect files that have no scene
+	for file in session.query(File).filter(not_(exists().where(SceneFile.file_id == File.id))).yield_per(200):
 
-    (aliases, apdict) = getAliasesAndDict()
+	    # make scene if none
+	    scene = Scene(file.display_name)
+	    m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
+	    scene.rating = len(max(m,key=len)) if m else 0
+	    session.add(scene)
+	    session.flush()
+	    sf = SceneFile(scene.id, file.id)
+	    session.add(sf)
+	    session.flush()
+		
+	session.commit()
+
+
+
+    (aliases, apdict) = getAliasesAndDict(session)
 
     # get the tables
-    tbls = getTbls()
+    tbls = getTbls(session)
 
     scenes = session.query(Scene).filter(Scene.confirmed != True).all()
     for scene in scenes:
-	makeFacets(scene, aliases=aliases, apdict=apdict, tbls=tbls)
+	makeFacets(session, scene, aliases=aliases, apdict=apdict, tbls=tbls)
 
 
 
     session.commit()
+
 
 
 

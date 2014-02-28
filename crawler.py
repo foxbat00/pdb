@@ -190,7 +190,8 @@ def FileScanner (fileq):
 	    else:
 		new = ForgoneFile(fname, path, repo.id)
 		session.add(new)
-	    session.flush()
+	    session.commit()
+	    session.expunge_all()
 	    return
 
 	# check for existing
