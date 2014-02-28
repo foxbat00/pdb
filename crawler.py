@@ -169,7 +169,7 @@ def FileScanner (fileq):
 
 	# shortcut - if this file matches by filename and size, let's avoid md5summing it.
 	q = (session.query(FileInst,File).join(File).filter(File.size == fsize, FileInst.name == fname \
-	    , FileInst.path == path, FileInst.repository == repo.id).first() )
+	    , FileInst.path == path, FileInst.repository_id == repo.id).first() )
 	if q:
 	    (fi,f) = q
 	    logger.debug(" shortcutting")
@@ -200,8 +200,7 @@ def FileScanner (fileq):
 	    session.add(f)
 	    session.flush()
 	    f.display_name = fname
-	    fi = FileInst(fname, path, repo, f)
-	    fi.file = f.id
+	    fi = FileInst(fname, path, repo.id, f.id)
 	    session.add(fi)
 	    session.flush()
 	    createUpdateScene(f)
@@ -225,7 +224,7 @@ def FileScanner (fileq):
 	    createUpdateScene(existing)
 
 	    # get corresponding file_insts
-	    fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file == existing.id).all()
+	    fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file_id == existing.id).all()
 	    logger.debug("   found file and %d existing instances" % int(len(fis)/2) )
 
 
@@ -251,7 +250,7 @@ def FileScanner (fileq):
 		    fi,r = fis
 		    fi.name = fname
 		    fi.path = path
-		    fi.repository = repo.id
+		    fi.repository_id = repo.id
 		    fi.last_seen = datetime.datetime.now()
 		    deleted_on = None
 		    session.commit()
@@ -261,7 +260,7 @@ def FileScanner (fileq):
 		# otherwise, create a new file instance
 		else:
 		    logger.debug("      creating new instance")
-		    fi = FileInst(fname,path,repo,existing)
+		    fi = FileInst(fname,path,repo.id,existing.id)
 		    session.add(fi)
 		    session.commit()
 		    session.expunge_all()
