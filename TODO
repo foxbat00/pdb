@@ -1,22 +1,12 @@
 
+- consider refactoring crawler/tagger to use a single thread and single session for db access with commands passed
+  via queues....
 
-
-####### something is seriously fucked up with the tagger because it keeps hitting existing tags on scene 12 for all kinds of targets.  scene variable is probably getting clobbered somewhere.
-
-
-
-
- ## consider whether to implement sidebar as lots of forms which each return a new element (or not,
-    or one form which returns a new sidebar
-
-
-	- implement json update for displayname :
-
-
-- add tags/stars, etc
-
+- implement x-editables for displayname :
 
 - show series/label, but as pill, and only one
 
+- investigate ffmpeg, html5 streaming
 
- ## consider refactoring tagger/crawler/views to abstract a common search module
+- investigate Slideshow rewrite.... or other VLC control options
+

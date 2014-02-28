@@ -286,52 +286,76 @@ CREATE OR REPLACE FUNCTION update_scene_words () RETURNS TRIGGER AS $A$
 	words text;
 	dn text;
 	sceneid int;
+	scenes int[];
     BEGIN 
 	IF TG_TABLE_NAME = 'scene' THEN
-	    sceneid := NEW.id;
+	    scenes := ARRAY[NEW.id];
 	ELSIF TG_TABLE_NAME = 'scene_file' THEN
-	    sceneid := NEW.scene_id;
+	    scenes := ARRAY[NEW.scene_id];
+	ELSIF TG_TABLE_NAME = 'file_inst' THEN
+	    EXECUTE $B$
+		SELECT ARRAY_AGG(distinct scene_file.scene_id) FROM file_inst
+		LEFT JOIN file ON (file.id = file_inst.file_id)
+		LEFT JOIN scene_file ON (scene_file.file_id = file.id)
+		WHERE file_inst.id = $1 AND file_inst.id IS NOT NULL
+	    $B$ INTO scenes USING  NEW.id;
 	END IF;
-	EXECUTE $B$
-	    SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
-		|| ' ' || STRING_AGG(file.wordbag, ' ')  
-		FROM scene
-		JOIN scene_file ON (scene_file.scene_id = scene.id)
-		JOIN file ON (file.id = scene_file.file_id)
-		JOIN file_inst ON (file_inst.file_id = file.id)
-		WHERE scene.id = $1
-		GROUP BY scene.wordbag
-	$B$ INTO words USING sceneid;
-	IF TG_TABLE_NAME = 'scene' THEN
-	    IF NEW.display_name IS NULL OR  NEW.display_name = '' THEN
-		NEW.display_name := words;
-	    END IF;
-	    NEW.wordbag := words;
-	ELSIF TG_TABLE_NAME = 'scene_file' THEN
-	    EXECUTE $C$
-		SELECT display_name FROM scene WHERE scene.id = $1
-	    $C$ INTO dn USING sceneid;
-	    IF dn IS NULL OR  dn = '' THEN
-		UPDATE SCENE SET display_name = words where id = sceneid;
-	    END IF;
-	    UPDATE scene SET wordbag = words WHERE scene.id = sceneid;
+
+	IF scenes IS NULL THEN
+	    return NEW;
 	END IF;
+
+	FOREACH sceneid IN ARRAY scenes LOOP
+	    IF sceneid IS NOT NULL THEN
+		EXECUTE $B$
+		    SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
+			|| ' ' || STRING_AGG(file.wordbag, ' ') || ' ' || scene.display_name 
+			FROM scene
+			JOIN scene_file ON (scene_file.scene_id = scene.id)
+			JOIN file ON (file.id = scene_file.file_id)
+			JOIN file_inst ON (file_inst.file_id = file.id)
+			WHERE scene.id = $1
+			GROUP BY scene.wordbag, scene.display_name
+		$B$ INTO words USING sceneid;
+		IF TG_TABLE_NAME = 'scene' THEN
+		    IF NEW.display_name IS NULL OR  NEW.display_name = '' THEN
+			NEW.display_name := words;
+		    END IF;
+		    NEW.wordbag := words;
+		ELSIF TG_TABLE_NAME = 'scene_file' THEN
+		    EXECUTE $C$
+			SELECT display_name FROM scene WHERE scene.id = $1
+		    $C$ INTO dn USING sceneid;
+		    IF dn IS NULL OR  dn = '' THEN
+		    UPDATE SCENE SET display_name = words where id = sceneid;
+		    END IF;
+		    UPDATE scene SET wordbag = words WHERE scene.id = sceneid;
+		END IF;
+	    END IF;
+	END LOOP;
 	return NEW;
     END;
 $A$ LANGUAGE plpgsql;
 
 
 
-    -- consider dropping the update once all scenes have a display_name
+-- consider dropping the update once all scenes have a display_name
 
 CREATE TRIGGER update_scene_words AFTER 
-    INSERT OR UPDATE OF wordbag ON scene 
+    INSERT OR UPDATE OF wordbag, display_name ON scene 
 FOR EACH ROW EXECUTE PROCEDURE update_scene_words();
 
 CREATE TRIGGER update_scene_words AFTER 
     INSERT OR UPDATE ON scene_file
 FOR EACH ROW EXECUTE PROCEDURE update_scene_words();
     
+CREATE TRIGGER update_scene_words AFTER 
+    INSERT OR UPDATE OF name ON file_inst
+FOR EACH ROW EXECUTE PROCEDURE update_scene_words();
+
+
+
+
 
 CREATE OR REPLACE  FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
     DECLARE 
