@@ -139,11 +139,8 @@ def FileScanner (fileq):
 	def createUpdateScene(file):
 	    if args.noscenes:
 		return
-	    scene_id = session.query(SceneFile.scene_id).filter(SceneFile.file_id == file.id).scalar()
-	    scene = None
-	    if scene_id:
-		scene = session.query(Scene).get(scene_id)
-	    else:
+	    scene = session.query(SceneFile.scene_id).filter(SceneFile.file_id == file.id).scalar()
+	    if not scene:
 		scene = Scene(file.display_name)
 		session.add(scene)
 		session.commit()

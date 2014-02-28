@@ -94,7 +94,7 @@ class File(Base):
 
     def getActiveInst(self):
 	return session.query(FileInst).filter(FileInst.deleted_on == None, FileInst.marked_delete != True)\
-	    .filter(FileInst.file == self.id).first()
+	    .filter(FileInst.file_id == self.id).first()
 	
     def json(self):
         return to_json(self, self.__class__)
@@ -103,19 +103,18 @@ class File(Base):
 
 class FileInst(Base):
     __table__ = Table('file_inst', Base.metadata, autoload=True)
-    Repo = relationship('Repository',backref='FileInsts')
-    F = relationship('File',backref='FileInsts')
+    #Repo = relationship('Repository',backref='FileInsts')
+    #F = relationship('File',backref='FileInsts')
 
 
-    def __init__(self, name, path, repo, file):
+    def __init__(self, name, path, repo, file_id):
 	self.name = name
 	self.path = path
-	self.Repo = repo
+	self.repository_id = repo
 	self.last_seen = datetime.datetime.now()
 	self.marked_delete = False
 	self.processed = False
-	self.F = file
-	#self.file = fileid
+	self.file_id = file_id
 
     def __repr__(self): 
 	return "<FileInst id=%d name=\"%s\", deleted=%s>" % (self.id, modJoin(self.Repo.path,self.path,self.name)\
@@ -136,7 +135,7 @@ class Scene(Base):
 
     def isDeleted(self):
 	return not session.query(FileInst) \
-	    .join(File, FileInst.file == File.id) \
+	    .join(File, FileInst.file_id == File.id) \
 	    .join(SceneFile, SceneFile.file_id == File.id) \
 	    .filter(FileInst.deleted_on == None, FileInst.marked_delete == False) \
 	    .filter(SceneFile.scene_id == self.id) \

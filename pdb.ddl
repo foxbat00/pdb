@@ -38,13 +38,13 @@ CREATE TABLE file (
 CREATE TABLE file_inst (
     id			serial		PRIMARY KEY,
     name 		text	 	NOT NULL,
-    repository		int		NOT NULL REFERENCES repository,
+    repository_id	int		NOT NULL REFERENCES repository,
     path 		text	 	NOT NULL, -- relative to repository
     deleted_on		date		NOT NULL DEFAULT '',
     marked_delete	boolean		NOT NULL,
     processed		boolean		NOT NULL,
     last_seen		date		NOT NULL,
-    file		int		NOT NULL REFERENCES file
+    file_id		int		NOT NULL REFERENCES file
 );
 
 
@@ -226,13 +226,13 @@ CREATE AGGREGATE tsvector_agg (
 
 --  get the set of active scenes
 
-CREATE FUNCTION active_scenes () RETURNS SETOF scene AS $$
+CREATE OR REPLACE FUNCTION active_scenes () RETURNS SETOF scene AS $$
     SELECT * FROM scene
     where EXISTS (
 	SELECT * FROM scene
 	JOIN scene_file ON (scene_file.scene_id = scene.id)
 	JOIN file ON (scene_file.file_id = file.id)
-	JOIN file_inst ON (file_inst.file = file.id)
+	JOIN file_inst ON (file_inst.file_id = file.id)
 	WHERE file_inst.marked_delete = 'f' AND file_inst.deleted_on IS NULL
     )
 $$  LANGUAGE sql;   --plpgsql;
@@ -243,7 +243,7 @@ $$  LANGUAGE sql;   --plpgsql;
 CREATE FUNCTION active_files () RETURNS SETOF file AS $$
     SELECT * FROM file
     WHERE EXISTS(
-	SELECT * FROM file JOIN file_inst ON (file_inst.file = file.id) 
+	SELECT * FROM file JOIN file_inst ON (file_inst.file_id = file.id) 
 	    WHERE file_inst.marked_delete = 'f' AND file_inst.deleted_on IS NULL
 	)
 $$  LANGUAGE sql;   --plpgsql;
@@ -258,7 +258,7 @@ CREATE OR REPLACE FUNCTION get_words_for_scene (int) RETURNS TEXT AS $A$
 	FROM scene
 	JOIN scene_file ON (scene_file.scene_id = scene.id)
 	JOIN file ON (file.id = scene_file.file_id)
-	JOIN file_inst ON (file_inst.file = file.id)
+	JOIN file_inst ON (file_inst.file_id = file.id)
 	WHERE scene.id = $1
 	GROUP BY scene.wordbag, scene.display_name
 $A$ LANGUAGE sql;
@@ -267,7 +267,7 @@ $A$ LANGUAGE sql;
 
 -- assign a display name from the agg wordbag if none set
 
-CREATE OR REPLACE FUNCTION update_scene_display_name () RETURNS TRIGGER AS $A$
+CREATE OR REPLACE FUNCTION update_scene_words () RETURNS TRIGGER AS $A$
     DECLARE 
 	words text;
 	dn text;
@@ -284,10 +284,10 @@ CREATE OR REPLACE FUNCTION update_scene_display_name () RETURNS TRIGGER AS $A$
 		FROM scene
 		JOIN scene_file ON (scene_file.scene_id = scene.id)
 		JOIN file ON (file.id = scene_file.file_id)
-		JOIN file_inst ON (file_inst.file = file.id)
+		JOIN file_inst ON (file_inst.file_id = file.id)
 		WHERE scene.id = $1
 		GROUP BY scene.wordbag
-	$B$ INTO words USING scene_id;
+	$B$ INTO words USING sceneid;
 	IF TG_TABLE_NAME = 'scene' THEN
 	    IF NEW.display_name IS NULL OR  NEW.display_name = '' THEN
 		NEW.display_name := words;
@@ -300,7 +300,7 @@ CREATE OR REPLACE FUNCTION update_scene_display_name () RETURNS TRIGGER AS $A$
 	    IF dn IS NULL OR  dn = '' THEN
 		UPDATE SCENE SET display_name = words where id = sceneid;
 	    END IF;
-	    UPDATE scene SET wordbag = words WHERE scene.id = sceneid
+	    UPDATE scene SET wordbag = words WHERE scene.id = sceneid;
 	END IF;
 	return NEW;
     END;
@@ -310,13 +310,13 @@ $A$ LANGUAGE plpgsql;
 
     -- consider dropping the update once all scenes have a display_name
 
-CREATE TRIGGER update_scene_display_name AFTER 
+CREATE TRIGGER update_scene_words AFTER 
     INSERT OR UPDATE OF wordbag ON scene 
-FOR EACH ROW EXECUTE PROCEDURE update_scene_display_name();
+FOR EACH ROW EXECUTE PROCEDURE update_scene_words();
 
-CREATE TRIGGER update_scene_display_name AFTER 
+CREATE TRIGGER update_scene_words AFTER 
     INSERT OR UPDATE ON scene_file
-FOR EACH ROW EXECUTE PROCEDURE update_scene_display_name();
+FOR EACH ROW EXECUTE PROCEDURE update_scene_words();
     
 
 CREATE OR REPLACE  FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
@@ -337,7 +337,7 @@ CREATE OR REPLACE  FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
 	ELSIF TG_TABLE_NAME = 'file_inst' THEN
 	    EXECUTE $B$
 		SELECT ARRAY_AGG(distinct scene_file.scene_id) FROM file_inst
-		LEFT JOIN file ON (file.id = file_inst.file)
+		LEFT JOIN file ON (file.id = file_inst.file_id)
 		LEFT JOIN scene_file ON (scene_file.file_id = file.id)
 		WHERE file_inst.id = $1 AND file_inst.id IS NOT NULL
 	    $B$ INTO sceneid USING  NEW.id;
@@ -353,7 +353,7 @@ CREATE OR REPLACE  FUNCTION update_scene_tsv () RETURNS TRIGGER AS $A$
 		    FROM scene
 		    JOIN scene_file ON (scene_file.scene_id = scene.id)
 		    JOIN file ON (scene_file.file_id = file.id)
-		    JOIN file_inst ON (file_inst.file = file.id)
+		    JOIN file_inst ON (file_inst.file_id = file.id)
 		    GROUP BY scene.id, scene.wordbag
 		    HAVING scene.id = $1
 	    $B$  INTO words USING scene;

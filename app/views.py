@@ -82,7 +82,7 @@ def search_view():
 	    q = session.query(Scene) \
 		.join(SceneFile, SceneFile.scene_id == Scene.id) \
 		.join(File, File.id == SceneFile.file_id) \
-		.join(FileInst, FileInst.file == File.id) \
+		  .join(FileInst, FileInst.file_id == File.id) \
 		.filter(Scene.wordbag.ilike('%'+query+'%') ) \
 		.filter(FileInst.deleted_on == None, FileInst.marked_delete == False) 
 # TODO: add a checkbox to results page that includes deleted items, flag deleted items with pill
@@ -139,7 +139,7 @@ def get_jax(thing, id):
 	    if thing == 'scene':    
 		deleted = o.isDeleted()
 		facets = {}
-		file_insts = session.query(FileInst).join(File, FileInst.file == File.id) \
+		file_insts = session.query(FileInst).join(File, FileInst.file_id == File.id) \
 		    .join(SceneFile, File.id ==SceneFile.file_id) \
 		    .filter(SceneFile.scene_id == id).all()
 		taglist = session.query(Tag) \

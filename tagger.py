@@ -113,11 +113,11 @@ def addSceneAssociation(table_name,target_id, scene):
 	    newrec = table(scene.id, target_id, tentative=True)  # table:  SceneTag, SceneStar ORM objects
 	    session.add(newrec)
 	    session.flush()
-	    logger.debug("\nAdding scene-%s association: scene_id %d %s_id %d %s " \
+	    logger.debug("\nAdding scene-%s association: scene_id %s %s_id %s %s " \
 		% (table_name,scene.id,table_name,target_id, getTargetName(table_name,target_id)))
 	    addImplied(table_name, target_id, scene)
 	else:
-	    logger.debug("existing tag for scene %d target %d %s (of %s)" \
+	    logger.debug("existing tag for scene %s target %s %s (of %s)" \
 		% (scene.id, target_id, getTargetName(table_name, target_id), table_name))
 	    addImplied(table_name, target_id, scene)
 
@@ -186,6 +186,10 @@ def getTbls():
 
 def makeFacets(scene, apdict=None, aliases=None, tbls=None):
 
+    # skip if scene is locked
+    if scene.confirmed:
+	return
+
     if not apdict or not aliases: # not > or
 	(aliases, apdict) = getAliasesAndDict()
 
@@ -198,8 +202,8 @@ def makeFacets(scene, apdict=None, aliases=None, tbls=None):
 	return
     mulched_wordbag = mulch(agg_wordbag)
 
-    sys.stdout.write("S")
-    sys.stdout.flush()
+    #sys.stdout.write("S")
+    #sys.stdout.flush()
 
     # iterate over aliases
     for a in aliases:
@@ -237,7 +241,7 @@ def makeFacets(scene, apdict=None, aliases=None, tbls=None):
 if __name__ == '__main__':
 
 
-
+    """
     #### make scenes if needed
     # collect files that have no scene
     for file in session.query(File).filter(not_(exists().where(SceneFile.file_id == File.id))).yield_per(200):
@@ -253,6 +257,7 @@ if __name__ == '__main__':
 	session.flush()
 	    
     session.commit()
+    """
 
 
 
