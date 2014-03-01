@@ -187,9 +187,16 @@ def getTbls(session):
 
 def makeFacets(session, scene, apdict=None, aliases=None, tbls=None):
 
+    if not scene:
+	logger.debug("scene passed to makeFacets is null!!!!")
+	return
+
+
     # skip if scene is locked
     if scene.confirmed:
 	return
+
+
 
     if not apdict or not aliases: # not > or
 	(aliases, apdict) = getAliasesAndDict()
@@ -197,7 +204,9 @@ def makeFacets(session, scene, apdict=None, aliases=None, tbls=None):
     if not tbls:
 	tbls = getTbls()
 
-    agg_wordbag = session.query(func.get_words_for_scene(scene.id)).first()[0].strip().lower()
+    #agg_wordbag = session.query(func.get_words_for_scene(scene.id)).first()[0]
+    agg_wordbag = scene.wordbag
+    agg_wordbag = agg_wordbag.strip().lower()
     if not agg_wordbag:
 	logger.debug("EMPTY get_words_for_scene on scene.id %d" % scene.id)
 	return

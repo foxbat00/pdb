@@ -386,7 +386,8 @@ if __name__ == '__main__':
 
 
 
-    logger.info("##### starting new file crawl at %s" % datetime.datetime.now())
+    start_time = datetime.datetime.now()
+    logger.info("##### starting new file crawl at %s" % start_time)
 
 
 
@@ -416,7 +417,8 @@ if __name__ == '__main__':
 	t.start()
 
     repoq.join() # wait/ensure for everything to be added...
-    logger.info(" --done enqueuing files (FileLoaders)-- complete %s" % datetime.datetime.now())
+    load_done = datetime.datetime.now() - start_time
+    logger.info(" --done enqueuing files (FileLoaders)-- complete %s after start" % load_done)
     logger.debug(" the queue for FileScanners is %d" % fileq.qsize())
 
     # FileScanners consume files from the fileq, analyzes them,  and add records to the database
@@ -427,11 +429,9 @@ if __name__ == '__main__':
 	t.start()
 
     fileq.join()
-    logger.info(" --done building filelist (FileScanners) -- complete %s" % datetime.datetime.now())
 
-
-
-    logger.info("###### crawl for new files -- complete %s #######" % datetime.datetime.now())
+    scan_done = datetime.datetime.now() - start_time
+    logger.info("###### crawl for new files -- complete %s after start #######" % scan_done)
 
     # check file_instances that we haven't seen in a while
     for q in session.query(FileInst,Repository).join(Repository).filter(FileInst.deleted_on == None)\
@@ -450,7 +450,16 @@ if __name__ == '__main__':
 
     updateq.join()
     session.close()
-    logger.info("###### crawl of files not recently seen -- complete %s #######" % datetime.datetime.now())
+
+    update_done = datetime.datetime.now() - start_time
+    logger.info(" -- update done for files not seen recently -- ")
+    logger.info("####################################################")
+    logger.info(" loading:  %s" % load_done)
+    logger.info(" scanning:  %s" % (scan_done - load_done))
+    logger.info(" updating: %s" % (update_done - scan_done))
+    logger.info(" total:  %s"  % update_done)
+
+
 
 
 

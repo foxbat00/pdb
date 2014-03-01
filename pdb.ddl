@@ -22,19 +22,6 @@ CREATE TABLE repository (
     
 
 
-CREATE TABLE file (
-    id			serial		PRIMARY KEY,
-    md5hash		varchar(200)	NOT NULL,
-    --tsv			tsvector	,
-    wordbag		text		NOT NULL DEFAULT '',
-    display_name	varchar(200)	NOT NULL,
-    size		bigint		NOT NULL,
-    last_crawled	date		NOT NULL,
-    CONSTRAINT file_hash_size_unique UNIQUE(md5hash,size)
-);
-
-
-
 CREATE TABLE file_inst (
     id			serial		PRIMARY KEY,
     name 		text	 	NOT NULL,
@@ -47,6 +34,23 @@ CREATE TABLE file_inst (
     added_on		date		NOT NULL DEFAULT now(),
     file_id		int		NOT NULL REFERENCES file
 );
+
+
+
+
+
+CREATE TABLE file (
+    id			serial		PRIMARY KEY,
+    md5hash		varchar(200)	NOT NULL,
+    --tsv			tsvector	,
+    wordbag		text		NOT NULL DEFAULT '',
+    display_name	varchar(200)	NOT NULL,
+    size		bigint		NOT NULL,
+    last_crawled	date		NOT NULL,
+    CONSTRAINT file_hash_size_unique UNIQUE(md5hash,size)
+);
+
+
 
 
 
@@ -77,7 +81,8 @@ CREATE TABLE forgone_file (
     path		text		NOT NULL,
     name		text		NOT NULL,
     added_on		date		NOT NULL DEFAULT now(),
-    last_seen		date		NOT NULL
+    last_seen		date		NOT NULL,
+    deleted_on		date		
 );
 
 
@@ -268,7 +273,7 @@ $$  LANGUAGE sql;   --plpgsql;
 
 CREATE OR REPLACE FUNCTION get_words_for_scene (int) RETURNS TEXT AS $A$
     SELECT STRING_AGG(file_inst.path, ' ') || ' ' || STRING_AGG(file_inst.name, ' ') 
-	|| ' ' || STRING_AGG(file.wordbag, ' ')  || ' ' || scene.wordbag || ' ' || scene.display_name
+	|| ' ' || STRING_AGG(file.wordbag, ' ')  ||  scene.display_name
 	FROM scene
 	JOIN scene_file ON (scene_file.scene_id = scene.id)
 	JOIN file ON (file.id = scene_file.file_id)
