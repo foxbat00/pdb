@@ -57,7 +57,9 @@ def pairwise(iterable):
 
 # break a string down into words (alphanum) and ignore quotes and all other non-alphas
 def mulch(mystring):
-    return re.findall(r'\w+',mystring)
+    # TODO: consider the wisdom of this change... do we ever care about numbers?
+    #return re.findall(r'\w+',mystring)
+    return re.findall(r'[A-Za-z]+',mystring)
 
 # if small is a subsequence of big, returns (start, end+1) of sequence occurence
 def contains(small, big):
@@ -106,7 +108,7 @@ def addSceneAssociation(session, table_name,target_id, scene):
 	for i in implics:
 	    logger.debug("  add by implication: #%s# scene %d target %d %s" \
 		% (i,scene.id,target_id,getTargetName(table_name,target_id)))
-	    addSceneAssociation(i.target_type, i.target, scene)
+	    addSceneAssociation(session, i.target_type, i.target, scene)
 
 
     # set the field on scene for label and series since they're n:1
@@ -199,10 +201,10 @@ def makeFacets(session, scene, apdict=None, aliases=None, tbls=None):
 
 
     if not apdict or not aliases: # not > or
-	(aliases, apdict) = getAliasesAndDict()
+	(aliases, apdict) = getAliasesAndDict(session)
 
     if not tbls:
-	tbls = getTbls()
+	tbls = getTbls(session)
 
     #agg_wordbag = session.query(func.get_words_for_scene(scene.id)).first()[0]
     agg_wordbag = scene.wordbag

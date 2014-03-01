@@ -158,7 +158,7 @@ def FileScanner (fileq):
 		    m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
 		    scene.rating = len(max(m,key=len)) if m else 0
 		    session.commit()
-		makeFacets(scene)  # calls into tagger
+		makeFacets(session, scene)  # calls into tagger
 
 
 
