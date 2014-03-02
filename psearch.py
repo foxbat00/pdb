@@ -10,24 +10,30 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from db import *
 from util import *
+from models import *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='pdb search')
 
 
-    parser.add_argument('-i', action='store_true', default=False, dest='insensitive', help='search case insensitive')
+    parser.add_argument('-i', action='store_true', default=True, dest='insensitive', help='search case insensitive')
     parser.add_argument('-d', action='store_true', default=False, dest='deleted', help='include deleted files')
-    parser.add_argument('terms', nargs='+', type=str, help='search terms (AND implicit)')
+    parser.add_argument('terms', nargs='+', type=str, help='search terms')
     args = parser.parse_args()
 
-    q = session.query(FileInst)
+    q = session.query(Scene)
     if not args.deleted:
 	q = q.filter(FileInst.deleted_on == None)
     for term in args.terms:
 	    if args.insensitive:
-		q = q.filter( (FileInst.path.ilike("%%%s%%" % term)) | (FileInst.name.ilike("%%%s%%" % term)) )
+		q = q.filter( Scene.wordbag.ilike("%%%s%%" % term) )
 	    else:
-		q = q.filter( (FileInst.path.like("%%%s%%" % term)) | (FileInst.name.like("%%%s%%" % term)) )
+		q = q.filter( Scene.wordbag.like("%%%s%%" % term) )
 	
-    for x in q.all():
-	print x.getFullName()
+    for scene in q.all():
+	print " "
+	print " "
+	print 'Scene:  id=%d, dn=%s' % (scene.id, scene.display_name)
+	fis = scene.get_file_insts()
+	for fi in fis:
+	    print " -- %s" % fi

@@ -150,16 +150,21 @@ class Scene(Base):
 	return "<Scene id=%d display_name=\"%s\">" % (self.id, self.display_name)
 
     def isDeleted(self):
-	return not session.query(FileInst) \
-	    .join(File, FileInst.file_id == File.id) \
-	    .join(SceneFile, SceneFile.file_id == File.id) \
-	    .filter(FileInst.deleted_on == None, FileInst.marked_delete == False) \
-	    .filter(SceneFile.scene_id == self.id) \
-	    .first()
+	return not get_file_insts(self)
 
     def json(self):
         return to_json(self, self.__class__)
 
+    def get_file_insts(self):
+	return session.query(FileInst)\
+	    .join(File, FileInst.file_id == File.id) \
+            .join(SceneFile, SceneFile.file_id == File.id) \
+            .filter(FileInst.deleted_on == None, FileInst.marked_delete == False) \
+            .filter(SceneFile.scene_id == self.id) \
+            .all()
+
+
+	    
 
 
 

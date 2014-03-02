@@ -17,7 +17,7 @@ import argparse
 # set up db
 from db import *
 from models import *
-from util import *
+from helpers import *
 
 # tagger for tagging new scenes
 from tagger import makeFacets
