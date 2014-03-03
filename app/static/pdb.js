@@ -62,6 +62,7 @@ $( document ).ready(function() {
     }
     $('#rightbar-toggle').clicktoggle(rightbar_open, rightbar_close);
 
+
     //pjax handlers
     $(document).pjax('a[pjax_main]', '#main_content');
     $(document).pjax('a[pjax_rightbar]', '#right-sidebar');
@@ -69,150 +70,10 @@ $( document ).ready(function() {
       $.pjax.submit(event, '#main_content');
     });
     $('#right-sidebar').on('pjax:complete', rightbar_open);
-    $('#right-sidebar').on('pjax:end', rightbar_setup);
+    //$('#right-sidebar').on('pjax:end', rightbar_setup);
+    // this is in sidebar.js
 
 
 
-////////////////////////  right-sidebar pjax:complete   /////////////////////
 
-
-    function rightbar_setup() {
-	console.log("pjax-complete being called")
-
-	// facets 
-	$('#mytags').select2({
-
-	    placeholder: "Tags ...",
-	    minimumInputLength: 2,
-	    multiple: true,
-	    tokenSeparators: [","],
-	    createSearchChoice: function(term, data) {
-		if ($(data).filter(function() {
-		    return this.name.localeCompare(term) === 0;
-		}).length === 0) {
-		    return {id: 0, name: term};
-		}
-
-	    },
-	    ajax: {
-		url: '/facetnames/tag',
-		quietMillis: 500,
-		dataType: 'jsonp',
-		type: 'GET',
-		data: function (term, page) {
-		    return {
-			q: term, // search term
-		    };
-		},
-		results: function(data, page) {
-		    return results;
-		}
-	    },
-	    createSearchChoice:function(term, data) { 
-		if ($(data).filter(function() { 
-		    return this.text.localeCompare(term)===0; }).length===0) {
-			return {id:term, text:term};
-		    } 
-		}
-	    
-	}); // close select2
-
-	$('#mytags').on("change", function (e)  {
-	    console.log("change "+JSON.stringify({val:e.val, added:e.added, removed:e.removed})); 
-	    console.log(e.currentTarget.id);
-
-	    if(e.added){
-		$.post( "/view/"+scene_id+"/tag/add", { tagAdd: e.added.text } );
-	    }
-	    else if(e.removed){
-		$.post( "/view/"+scene_id+"/tag/remove", { tagRemove: e.removed.text } );
-	    }
-	    
-
-	});
-
-/*
-
-		// function (defined in {} ) is invoked with arguments event and ui
-		beforeTagAdded: function(event, ui) {
-		    // do something special
-		    if (!ui.duringInitialization) {
-			console.log(ui.tag);
-			// figure out if tag already exists on server
-			$.ajax({
-			    type: 'POST',
-			    url: '/get/tag/'.concat(ui.tag),
-			    success: function(response){
-				console.log("response = #"+response+"#");
-				var ret=JSON.parse(response); 
-				if (ret == "ERROR") {
-				    // tag does not exist on server
-				    if(!confirm_add(ui.tag)) {
-					//cancel
-					return false;
-				    }
-				    //create association
-				    if(!create_assoc('scene_tag',ui.tag)) {
-					//failed
-					return false;
-				    }
-				}
-			    }
-			});
-		    }
-		}
-	});
-
-
-	function create_assoc(linktbl,tag,scene) {
-	    var values = {
-		'scene_id':scene,
-		'tag_id':tag
-	    };
-		    
-	    $.ajax({
-		type: 'POST',
-		url: '/add/'+linktbl+'/',
-		data: values,
-		contentType: 'application/json; charset=utf-8',
-		dataType: 'json'
-	    });
-	}
-
-	function add_new(thing,values) {
-	    $.ajax({
-		type: 'POST',
-		url: '/add/'+thing+'/',
-		contentType: 'application/json; charset=utf-8',
-		dataType: 'json',
-		data: values
-	    }); 
-	}
-
-
-	function confirm_add(tag) {
-	    BootstrapDialog.show({
-		    message: 'Confirm adding tag: "'+tag+'"',
-		    buttons: [{
-			label: 'Confirm new tag "'+tag+'"',
-			action: add_new('tag', {'name': tag } )
-		    }, {
-			label: 'Cancel',
-			cssClass: 'btn-primary',
-			action: function(dialogItself){
-			    dialogItself.close();
-			}
-		    }]
-		}); 
-	}
-
-	// save after delay on display_name
-	//var timerid;
-	//$('#sidebar-display_name').keyup(function() {
-	//  var form = this;
-	//  clearTimeout(timerid);
-	//  timerid = setTimeout(function() { form.submit(); }, 2000);
-	//});
-	*/
-    }
 }); // document-ready close

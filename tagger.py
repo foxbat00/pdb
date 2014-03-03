@@ -150,6 +150,7 @@ def makeFacets(session, scene, apdict=None, aliases=None, tbls=None):
 
     # skip if scene is locked
     if scene.confirmed:
+	session.expunge(scene)
 	return
 
 
@@ -165,6 +166,7 @@ def makeFacets(session, scene, apdict=None, aliases=None, tbls=None):
     agg_wordbag = agg_wordbag.strip().lower()
     if not agg_wordbag:
 	logger.debug("EMPTY get_words_for_scene on scene.id %d" % scene.id)
+	session.expunge(scene)
 	return
     mulched_wordbag = mulch(agg_wordbag)
 
@@ -199,7 +201,7 @@ def makeFacets(session, scene, apdict=None, aliases=None, tbls=None):
 		continue
 
     session.commit()
-    session.expunge_all()
+    session.expunge(scene)
     return
 
 	

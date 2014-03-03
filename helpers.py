@@ -3,6 +3,7 @@
 import hashlib
 import os
 import re
+import shlex
 
 
 
@@ -30,14 +31,6 @@ def md5sum(file):
 
 
 ####### TAGGER  #######
-
-
-# iterate pairwise through a list  "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-def pairwise(iterable):
-        a, b = tee(iterable)
-        next(b, None)
-        return izip(a, b)
-
 
 
 
@@ -79,4 +72,62 @@ def wordmatch(condition, mulched_wordbag):
         return True
     return False
                 
+
+
+
+
+
+
+####### VIEWS  #######
+
+
+
+# iterate pairwise through a list  "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+def pairwise(iterable):
+        a, b = tee(iterable)
+        next(b, None)
+        return izip(a, b)
+
+
+
+# turn single-field query results into straight list
+def sfrToList(rs):
+    return map(lambda l: l[0],rs)
+            
+
+# turn a sqlalchemy row into a dict by field-name
+row2dict = lambda r: {c.name: getattr(r,c.name) for c in r.__table__.columns}
+    
+
+# autocomplete label value dicts to feed jquery
+# for when data is in format of [(a,b), (c,d)]
+def lvdict(labelsvalues):
+    js = []
+    for (l,v) in labelsvalues:
+        js.append({"label":l,"value":v})
+    return js
+        
+# autocomplete label value dicts to feed jquery
+# for when data is in format of [a,b,c,]
+def lvdictSingle(mylist):
+    js = []
+    for v in mylist:
+        js.append({"label":v,"value":v})
+    return js
+        
+
+def is_number(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+
+
+# replace whitespace not enclosed in quotes with % for sql searching
+def percentSeparator(str):
+    return '%'.join(['"{0}"'.format(fragment) if ' ' in fragment else fragment
+        for fragment in shlex.split(str)])
+
 

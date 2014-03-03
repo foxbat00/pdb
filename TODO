@@ -10,3 +10,21 @@
 
 - investigate Slideshow rewrite.... or other VLC control options
 
+- figure out how to filter out mac os alias files:
+    - http://stackoverflow.com/questions/21244781/what-replaces-the-now-deprecated-carbon-file-fsresolvealiasfile-in-python-on-osx
+
+    can't import appkit even with pyobjc installed from macports; it won't install from pip without errors
+
+
+
+
+    ============
+
+
+    the js fiddle shows select2 stuff is right
+    problem is that select2 is not being called at the right time
+    the pjax-complete call needs setup to be in pdb.js, but when it's there, tags is empty...
+    but I need setup to run at a time when the script defining tags has already run in sidebar.html
+
+
+

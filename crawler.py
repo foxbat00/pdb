@@ -20,7 +20,7 @@ from models import *
 from helpers import *
 
 # tagger for tagging new scenes
-from tagger import makeFacets
+from tagger import makeFacets, getAliasesAndDict, getTbls
 
 
 """
@@ -131,37 +131,10 @@ def FileLoader(repoq,fileq):
 
 
 
-def FileScanner (fileq):
+def FileScanner (fileq,sceneq):
 
     #@threaded
     def considerFile(scanfile):
-
-	def createUpdateScene(file):
-	    if args.no_scenes:
-		return
-
-	    scene_id = session.query(SceneFile.scene_id).filter(SceneFile.file_id == file.id).all()
-	    scene = None
-
-	    if not scene_id:
-		scene = Scene(file.display_name)
-		session.add(scene)
-		session.commit()
-		sf = SceneFile(scene.id, file.id)
-		session.add(sf)
-		session.commit()
-	    else:
-		scene = session.query(Scene).get(scene_id)
-
-	    if scene:
-		if not scene.rating:
-		    m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
-		    scene.rating = len(max(m,key=len)) if m else 0
-		    session.commit()
-		makeFacets(session, scene)  # calls into tagger
-
-
-
 
 
 	session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine)) 
@@ -176,8 +149,8 @@ def FileScanner (fileq):
 
 	# prevent adding files we can't read for whatever reason
 	    # TODO: consider also checking for hash: d41d8cd98f00b204e9800998ecf8427e
-	if fsize == 0:
-	    logger.debug("====  possible error - zero file size:   %s" % fullname)
+	if fsize <= min_file_size:
+	    logger.debug("====  small file size:   %s size %d " % (fullname, fsize))
 	    # when this happens, we need to distinghuish between things like the repo not being
 	    # mounted and simply running across a file of size 0...
 	    ex = session.query(ForgoneFile) \
@@ -208,7 +181,7 @@ def FileScanner (fileq):
 	    if not fi.ext:
 		name, ext= os.path.splitext(fname)
 		fi.ext = ext
-	    createUpdateScene(f)
+	    sceneq.put(f.id)
 	    session.commit()
 	    session.expunge_all()
 	    return
@@ -231,7 +204,8 @@ def FileScanner (fileq):
 	    fi = FileInst(fname, path, repo.id, f.id)
 	    session.add(fi)
 	    session.flush()
-	    createUpdateScene(f)
+	    #createUpdateScene(f)
+	    sceneq.put(f.id)
 	    session.commit()
 	    session.expunge_all()
 	    return
@@ -249,7 +223,8 @@ def FileScanner (fileq):
 		existing.display_name = fullname
 
 	    # if no scene exists, create
-	    createUpdateScene(existing)
+	    #createUpdateScene(existing)
+	    sceneq.put(existing.id)
 
 	    # get corresponding file_insts
 	    fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file_id == existing.id).all()
@@ -328,6 +303,57 @@ def FileUpdater(updateq):
 	updateq.task_done()
 
 
+
+
+
+
+def SceneUpdater(sceneq):
+
+    def createUpdateScene(fid, session):
+	if args.no_scenes:
+	    return
+
+	file = session.query(File).get(fid)
+
+	# TODO:  consider better check
+	scene_id = session.query(SceneFile.scene_id).filter(SceneFile.file_id == file.id).first()
+	scene = None
+
+	if not scene_id:
+	    scene = Scene(file.display_name)
+	    session.add(scene)
+	    session.commit()
+	    sf = SceneFile(scene.id, file.id)
+	    session.add(sf)
+	    session.commit()
+	    session.expunge(sf)
+	else:
+	    scene = session.query(Scene).get(scene_id)
+
+	if scene:
+	    if not scene.rating:
+		m = re.findall(r'^&+|&+$|(?<=\W)&+(?=\W)',file.display_name)
+		scene.rating = len(max(m,key=len)) if m else 0
+		session.commit()
+	    makeFacets(session, scene)  # calls into tagger, expunges and commits
+	session.expunge(file)
+
+
+    logger.debug("SceneUpdater running")
+    session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine)) 
+    (aliases, apdict) = getAliasesAndDict(session)
+    tbls = getTbls(session)
+
+    while True:
+	fid = sceneq.get()
+	createUpdateScene(fid, session)
+	sceneq.task_done()
+
+
+
+
+
+
 #############################################################
 #
 #  main
@@ -343,12 +369,14 @@ if __name__ == '__main__':
     , ".m4v", ".mkv", ".mov", ".asf", ".mp4", ".flv", ".3gp",".asf", ".divx" ]
     invalidExts = []
     threadMax = 4
+    min_file_size = 80000 # 80k
 
 
 
     # threading queues
     fileq = Queue()
     repoq = Queue()
+    sceneq = Queue()
     updateq = Queue()
 
 
@@ -409,6 +437,9 @@ if __name__ == '__main__':
 	else:
 	    logger.debug("excluding repo: %d %s" % (r.id, r.path))
 
+
+
+
     # FileLoaders consume repos from the repoq, scan those repos, and add files to the fileq
     logger.debug("launching FileLoaders")
     for i in range (threadMax if len(rs) > threadMax else len(rs)):
@@ -419,12 +450,18 @@ if __name__ == '__main__':
     repoq.join() # wait/ensure for everything to be added...
     load_done = datetime.datetime.now() - start_time
     logger.info(" --done enqueuing files (FileLoaders)-- complete %s after start" % load_done)
+
+
+
+
+
+
     logger.debug(" the queue for FileScanners is %d" % fileq.qsize())
 
     # FileScanners consume files from the fileq, analyzes them,  and add records to the database
     logger.debug("launching FileScanners")
     for i in range (threadMax):
-	t  = Thread(target=FileScanner, args=(fileq,)) # requires a tuple
+	t  = Thread(target=FileScanner, args=(fileq,sceneq)) # requires a tuple
 	t.daemon = True  # the prog ends when no alive non-daemons are left
 	t.start()
 
@@ -433,7 +470,14 @@ if __name__ == '__main__':
     scan_done = datetime.datetime.now() - start_time
     logger.info("###### crawl for new files -- complete %s after start #######" % scan_done)
 
-    # check file_instances that we haven't seen in a while
+
+
+
+
+
+
+
+    # update:   check file_instances that we haven't seen in a while
     for q in session.query(FileInst,Repository).join(Repository).filter(FileInst.deleted_on == None)\
 	    .filter(FileInst.last_seen < datetime.datetime.now() - datetime.timedelta(days=3)).yield_per(300):
 	(fi,r) = q
@@ -441,6 +485,7 @@ if __name__ == '__main__':
 	    uf = UpdateFile(r.id, fi.id)
 	    updateq.put(uf)
 
+    session.close()
     logger.debug("update qsize = %d" % updateq.qsize())
     if not updateq.empty():
 	for i in range (threadMax):
@@ -449,15 +494,40 @@ if __name__ == '__main__':
 	    t.start()
 
     updateq.join()
-    session.close()
 
     update_done = datetime.datetime.now() - start_time
     logger.info(" -- update done for files not seen recently -- ")
+
+
+
+
+
+
+
+    # make scenes and tags
+    if not args.no_scenes:
+	logger.info(" -- starting scene-level operations- ")
+	logger.debug("scene qsize = %d" % updateq.qsize())
+	if not sceneq.empty():
+	    #for i in range (threadMax):
+	    t = Thread(target=SceneUpdater,args=(sceneq,))  # requires a tuple
+	    t.daemon = True  # the prog ends when no alive non-daemons are left
+	    t.start()
+
+	sceneq.join()
+
+    scene_done = datetime.datetime.now() - start_time
+    logger.info(" -- scenes/tags  done -- ")
+
+
+
+
     logger.info("####################################################")
     logger.info(" loading:  %s" % load_done)
     logger.info(" scanning:  %s" % (scan_done - load_done))
     logger.info(" updating: %s" % (update_done - scan_done))
-    logger.info(" total:  %s"  % update_done)
+    logger.info(" scenes/tags: %s" % (scene_done - update_done))
+    logger.info(" total:  %s"  % scene_done)
 
 
 

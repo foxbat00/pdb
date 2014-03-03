@@ -8,7 +8,7 @@ import datetime
 import re, sys, os
 import json
 
-from util import *
+from helpers import *
 from db import *
 
 
@@ -53,7 +53,10 @@ def to_json(inst, cls):
 	    ctype = 'VARCHAR()'
         if ctype in convert.keys() and v is not None:
             try:
-                d[c.name] = convert[ctype](v)
+		n = c.name
+		if n== 'name':
+		    n = 'text'
+                d[n] = convert[ctype](v)
             except:
                 d[c.name] = "Error:  Failed to covert using ", str(convert[ctype])
         elif v is None:
@@ -64,7 +67,12 @@ def to_json(inst, cls):
 
 
 def jsonifyList(lst):
-    return [l.json() for l in lst]
+    if not lst:
+	return json.dumps('')
+    if re.search(r'KeyedTuple',str(type(lst[0]))):
+	app.logger.debug('ERROR - KeyedTuple passed to jsonifyList')
+    else:
+	return json.dumps( [json.loads(to_json(l, l.__class__)) for l in lst] )
 
 
 
@@ -150,7 +158,7 @@ class Scene(Base):
 	return "<Scene id=%d display_name=\"%s\">" % (self.id, self.display_name)
 
     def isDeleted(self):
-	return not get_file_insts(self)
+	return not self.get_file_insts()
 
     def json(self):
         return to_json(self, self.__class__)

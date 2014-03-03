@@ -62,3 +62,4 @@ examples/
 ignore/
 backup/
 app/static/bower_components/
+deploy_pdb.fcgi

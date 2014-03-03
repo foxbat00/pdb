@@ -11,59 +11,23 @@ from functools import wraps
 from app.decorators import xpjax_only
 import shlex
 
+from helpers import *
 
 
 
 
-
-
-# turn single-field query results into straight list
-def sfrToList(rs):
-    return map(lambda l: l[0],rs)
-	    
-
-# turn a sqlalchemy row into a dict by field-name
-row2dict = lambda r: {c.name: getattr(r,c.name) for c in r.__table__.columns}
-    
-
-# autocomplete label value dicts to feed jquery
-def lvdictPairs(labelsvalues):
-    js = []
-    for (l,v) in labelsvalues:
-	js.append({"label":l,"value":v})
-    return js
-	
-# autocomplete label value dicts to feed jquery
-def lvdict(mylist):
-    js = []
-    for v in mylist:
-	js.append({"label":v,"value":v})
-    return js
-	
-
-
+"""
 def getFacetString(taglist):
     tagstring = []
     for i in range (len(taglist)):
-	tagstring.append( str(taglist[i].id) +":"+taglist[i].name)
+	tagstring.append( '"'+str(taglist[i].id) +'":"'+taglist[i].name+'"')
 	if i < len(taglist) -1: # not last
 	    tagstring.append(',')
 
     tagstring = ''.join(tagstring)
     return tagstring
+"""
 
-
-# replace whitespace not enclosed in quotes with % for sql searching
-def percentSeparator(str):
-    return '%'.join(['"{0}"'.format(fragment) if ' ' in fragment else fragment
-	for fragment in shlex.split(str)])
-
-def is_number(s):
-    try:
-        int(s)
-        return True
-    except ValueError:
-        return False
 
 @app.route('/test/', methods=('GET','POST') )
 def test_view():
@@ -94,24 +58,50 @@ def search_view():
 
 
 
+##### TODO:
+
+# rename facetnames 
+# refactor to support autocomplete, integrate with select2 
+
+
+
+
+
+
 # used to get the tags, stars, etc. for autocomplete
-@app.route('/facetnames/<facet>', methods=('GET', 'POST'))
-def get_facet_names(facet):
+@app.route('/facet/<facet>', methods=('GET', 'POST'))
+def get_facet(facet):
     if request.is_xhr:
-	app.logger.debug("get facet names for facet %s" % facet)
-	search = request.args.get('q')
-	if not search:
-	    app.logger.debug('ERROR - no search term detected')
+	app.logger.debug("get facet for facet %s" % facet)
+	
+	tbl = getattr(models, facet.lower().capitalize()) # Tag
+	if not tbl:
+	    app.logger.debug('not found: %s' % facet)
 	    abort()
-	tbl = getattr(models, facet.lower().capitalize())
-	rs = session.query(tbl.name) \
-	    .filter( tbl.name.ilike(search+'%') ) \
-	    .limit(10).all()
+
+	if 'searchq' in request.args:
+	    app.logger.debug("search")
+	    search = request.args.get('searchq')
+	    rs = session.query(tbl) \
+		.filter( tbl.name.ilike(search+'%') ) \
+		.limit(10).all()
+	elif 'scene_id' in request.args:
+	    app.logger.debug("scene lookup")
+	    sid = request.args.get('scene_id')
+	    linktbl = getattr(models,'Scene'+tbl.lower().capitalize()) # SceneTag
+	    rs = session.query(tbl) \
+		.join(linktbl, getattr(linktbl,facet.lower()+'_id') == tbl.id) \
+		.filter(linktbl.scene_id == sid).all()
+
+	else:
+	    app.logger.debug('ERROR - nothing in args  recognized')
+	    abort()
+
+
 	if rs:
-	    #js = lvdict(rs)
-	    #return json.dumps(js)
-	    return rs.json()
+	    js = jsonifyList(rs)
 	    app.logger.debug("returning...%d results:\n\n %s" % (len(rs), js))
+	    return js
 	else:
 	    app.logger.debug("no results found, returning ERROR")
 	    return json.dumps('ERROR') 
@@ -147,8 +137,9 @@ def get_jax(thing, id):
 		    .join(Tag, Tag.id == SceneTag.tag_id) \
 		    .filter(SceneTag.scene_id == o.id) \
 		    .all()
-		tagstring = getFacetString(taglist)
-		facets['taglist'] = tagstring
+		#facets['taglist'] = jsonifyList(taglist)
+		facets['alltags'] = jsonifyList(session.query(Tag).all())
+		facets['thesetags'] = ','.join(str(x.name) for x in taglist)
 		return render_template('pjax/sidebar.html',  \
 		    scene=o, deleted=deleted, file_insts=file_insts, facets=facets)
 	    else:
@@ -168,7 +159,7 @@ def get_jax(thing, id):
 	# prepare response
 	if o:
 	    # see http://stackoverflow.com/questions/7102754/jsonify-a-sqlalchemy-result-set-in-flask
-	    return o._json()
+	    return o.json()
 	else:
 	    return json.dumps('')
     else:

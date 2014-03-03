@@ -1,4 +1,12 @@
 {% if scene %}
+    <script>
+	var scene_id = {{scene.id}};
+	{% if facets['alltags'] %}
+	    var tags = {{facets['alltags']|safe}};
+	{% else %} 
+	    var tags = '';
+	{% endif %}
+    </script>
     <h3>Scene:</h3>
     {% if deleted %}
 	<span class="label label-danger">Deleted</span>
@@ -21,9 +29,30 @@
     {% if facets  %}
 	    <h4>Tags:</h4>
 		<ul id="mytags">
-		<input type='hidden' id="mytags" style="width: 500px;" value= {{ facets['taglist'] }} />
+		<input type='text'  id="mytags" style="width: 500px;" value="{{ facets['thesetags'] }}" />
 		</ul>
     {% endif %}
+    <script>
+    
+    $(document ).ready(function() {
+
+	console.log("sidebar document ready");
+
+	    console.log("tags = #"+JSON.stringify(tags)+"#");
+
+	    // facets 
+	    $('#mytags').select2({
+		tags: tags,
+		placeholder: "Tags ...",
+		minimumInputLength: 2,
+		multiple: true,
+		tokenSeparators: [","]
+		//allowClear: true 
+	    }); 
+
+
+    }); // document-ready close
+    </script>
 
 	
     {% if file_insts %}
