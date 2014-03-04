@@ -105,13 +105,14 @@ $( document ).ready(function() {
 		
 		// figure out if tag already exists on server
 		$.ajax({
+		    dataType: 'json',   // causes error
 		    type: 'POST',
 		    url: '/get/tag/'+e.added.id,
 		    contentType: 'application/json; charset=utf-8',
-		    //dataType: "json",   // causes error
 		    success: function(response){
 			console.log("response = #"+response+"#");
-			var ret = JSON.parse(response); 
+			var ret = response;
+			//var ret = JSON.parse(response); 
 			console.log("ret = #"+ret+"#");
 
 			if (ret == {}) {
@@ -123,7 +124,7 @@ $( document ).ready(function() {
 			}
 
 			//create association
-			if(!create_assoc('scene_tag',e.added.id, scene_id)) {
+			if(!create_assoc('SceneTag',e.added.id, scene_id)) {
 			    //failed
 			    return false;
 			}
@@ -147,8 +148,8 @@ $( document ).ready(function() {
 		type: 'POST',
 		url: '/add/'+thing+'/',
 		contentType: 'application/json; charset=utf-8',
-		//dataType: 'json',
-		data: values
+		dataType: 'json',
+		data: JSON.stringify(values)
 	    }); 
 	}
 
@@ -163,9 +164,9 @@ $( document ).ready(function() {
 	    $.ajax({
 		type: 'POST',
 		url: '/add/'+linktbl+'/',
-		data: values,
-		contentType: 'application/json; charset=utf-8'
-		//dataType: 'json'
+		dataType: 'json',
+		contentType: 'application/json; charset=utf-8',
+		data: JSON.stringify(values)
 	    });
 	}
 

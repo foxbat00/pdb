@@ -50,12 +50,14 @@ def threaded(fn):
 
 
 class ScanFile():
-    def __init__(self,repo,relpath,fname):
+    def __init__(self,repo,relpath,fname, fsize):
 	self.repo = repo
 	self.relpath = relpath
 	self.fname = fname
+	self.fsize = fsize
     def __repr__(self):
-	return "<ScanFile repo=%d, relpath=%s, fname=%s>" % (self.repo, self.relpath, self.fname)
+	return "<ScanFile repo=%d, relpath=%s, fname=%s, fsize=%d>" \
+	    % (self.repo, self.relpath, self.fname, self.fsize))
 
 
 class UpdateFile():
@@ -69,10 +71,10 @@ class UpdateFile():
 
 def validFile(fname, ext):
     if ext.lower() not in validExts:
-	logger.debug("file extension not valid: %s #%s#")
+	#logger.debug("file extension not valid: %s #%s#")
 	return False
     if re.search(r'^\.',fname):
-	logger.debug("ignoring dotfile: %s #%s#")
+	#logger.debug("ignoring dotfile: %s #%s#")
 	return False
     return True
     
@@ -110,11 +112,11 @@ def FileLoader(repoq,fileq):
 	    for f in files:
 		logger.debug("FileLoader walking to %s/%s" % (root, f))
 		fpart,ext = os.path.splitext(f)
+		fsize = os.path.getsize(modJoin(root,f))
 		if not validFile(fpart,ext):
-		    logger.debug("   not valid filename/extension: %s/%s #%s#" % (root,fpart,ext))
 		    continue
-		sf = ScanFile(r.id, os.path.relpath(root,rpath), f)
-		logger.debug("adding %s to fileq" % sf)
+		sf = ScanFile(r.id, os.path.relpath(root,rpath), f, fsize)
+		#logger.debug("adding %s to fileq" % sf)
 		fileq.put(sf)
 	    
 
@@ -141,11 +143,11 @@ def FileScanner (fileq,sceneq):
 	repo = session.query(Repository).filter(Repository.id == str(scanfile.repo)).first()
 	path = scanfile.relpath
 	fname = scanfile.fname
+	fsize = scanfile.fsize
 
 	
 	fullname = modJoin(repo.path,path,fname)
 	logger.info("considering %s" % fullname)
-	fsize = os.path.getsize(fullname)
 
 	# prevent adding files we can't read for whatever reason
 	    # TODO: consider also checking for hash: d41d8cd98f00b204e9800998ecf8427e
@@ -477,9 +479,9 @@ if __name__ == '__main__':
 
 
 
-    # update:   check file_instances that we haven't seen in a while
+    # update:   check file_instances that we haven't seen since we started the crawl
     for q in session.query(FileInst,Repository).join(Repository).filter(FileInst.deleted_on == None)\
-	    .filter(FileInst.last_seen < datetime.datetime.now() - datetime.timedelta(days=3)).yield_per(300):
+	    .filter(FileInst.last_seen < start_time).yield_per(300):
 	(fi,r) = q
 	if fi and r and r.id not in excludeRepos:
 	    uf = UpdateFile(r.id, fi.id)

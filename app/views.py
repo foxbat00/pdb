@@ -200,22 +200,22 @@ def add_jax(thing):
 	if thing:
 	    app.logger.debug("received req = #%s#" % request)
 	    app.logger.debug("received request.data = #%s#" % request.data)
-	    app.logger.debug("received request.data = #%s#" % request.json)
+	    app.logger.debug("received json.data = #%s#" % request.json)
 	    #dct = json.loads(request.data)
 	    dct = request.get_json()
+	    app.logger.debug("json.data as dict = #%s#" % dct)
 
-
-	    logger.debug("received json = #%s#" % dct)
-	    tbl = getattr(models, thing.lower().capitalize())
+	    tbl = getattr(models, thing)
 	    q = session.query(tbl)
-	    for (k,v) in dct:
-		q.filter(getattr(tbl,k.lower())==v)
+	    for k,v in dct.iteritems():
+		q = q.filter(getattr(tbl,k.lower())==v)
 	    ex = q.first()
-	    logger.debug("translated query:= %s" % q)
+	    app.logger.debug("translated query:= %s" % q)
 	    if not ex:
 		new = tbl(**dct)
+		app.logger.debug("adding new object: %s" % new)
 		session.add(new)
-		session.commit(new)
+		session.commit()
 		return json.dumps('')
 	    else:
 		app.logger.debug("add failed because existing")
