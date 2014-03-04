@@ -28,17 +28,17 @@
     {%- endfor %}
     {% if facets  %}
 	    <h4>Tags:</h4>
-		<ul id="mytags">
-		<input type='text'  id="mytags" style="width: 500px;" value="{{ facets['thesetags'] }}" />
-		</ul>
+	    <input type='text'  id="mytags" value="{{ facets['thesetags'] }}" />
     {% endif %}
     <script>
     
-    $(document ).ready(function() {
+    //$(document).on('ready pjax:end', function() {
+    $('#right-sidebar').on('pjax:end', function() {
 
-	console.log("sidebar document ready");
 
-	    console.log("tags = #"+JSON.stringify(tags)+"#");
+	console.log("sidebar document ready zz");
+
+	    //console.log("tags = #"+JSON.stringify(tags)+"#");
 
 	    // facets 
 	    $('#mytags').select2({

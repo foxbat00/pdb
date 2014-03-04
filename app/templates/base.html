@@ -24,6 +24,7 @@
     <link href="{{ url_for('static', filename='css/bootstrap-dialog.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='bower_components/select2/select2-bootstrap.css') }}" 
 	rel="stylesheet">
+    <link href="{{ url_for('static', filename='bower_components/select2/select2.css') }}" rel="stylesheet">
     <script src="{{ url_for('static',filename='bootstrap-3.1.1-dist/js/bootstrap.min.js') }}"></script>
     <script src="{{ url_for('static',filename='js/bootstrap-dialog.min.js') }}"></script>
     <link href="{{ url_for('static',filename='css/font-awesome.min.css') }}" rel=stylesheet">
@@ -78,7 +79,7 @@
     <a href="#" id="rightbar-toggle" class="button">&lt;&lt;</a>
     </div>
     <div id="right-sidebar"> 
-	{% include 'pjax/sidebar.html' %}
+	{#{% include 'pjax/sidebar.html' %}#}
     </div>
 
     <div class="container page">
