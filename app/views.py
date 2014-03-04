@@ -104,7 +104,7 @@ def get_facet(facet):
 	    return js
 	else:
 	    app.logger.debug("no results found, returning ERROR")
-	    return json.dumps('ERROR') 
+	    return json.dumps('{}') 
     else:
 	app.logger.debug("no XHR header")
 	app.logger.debug("headers received:  %s" % request.headers)
@@ -117,12 +117,12 @@ def get_facet(facet):
 # used by both the sidebar to get scene details and by sidebar ajax for getting things (to see if they exist mainly)
 @app.route('/get/<thing>/<id>', methods=('GET', 'POST'))
 def get_jax(thing, id):
-    app.logger.debug("inside get_pjax")
+    app.logger.debug("inside get_jax")
     if "X-PJAX" in request.headers:			### PJAX only
 	app.logger.debug("xjax detected ")
 	if thing and is_number(id):
 	    id = int(id)
-	    app.logger.debug("in get_pjax for thing %s and id %d" % (thing, id))
+	    app.logger.debug("in get_jax for thing %s and id %d" % (thing, id))
 	    tbl = getattr(models, thing.lower().capitalize())
 	    o = session.query(tbl).get(id)
 	    # scenes
@@ -192,11 +192,19 @@ def update_jax(thing, col, value):
 # used for adding stars, tags, etc and the corresponding mapping entries to scene_*
 @app.route('/add/<thing>/', methods=('POST',) )
 def add_jax(thing):
+
     app.logger.debug("inside add")
+
     if  request.is_xhr:  # in > or
 	app.logger.debug("xjax detected ")
 	if thing:
-	    dct = get_json()
+	    app.logger.debug("received req = #%s#" % request)
+	    app.logger.debug("received request.data = #%s#" % request.data)
+	    app.logger.debug("received request.data = #%s#" % request.json)
+	    #dct = json.loads(request.data)
+	    dct = request.get_json()
+
+
 	    logger.debug("received json = #%s#" % dct)
 	    tbl = getattr(models, thing.lower().capitalize())
 	    q = session.query(tbl)
