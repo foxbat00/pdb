@@ -13,8 +13,9 @@
     {% endif %}
     {# figure out if deleted, show label-pill #}
     <h4>Display Name:</h4> 
-    <form action="/update/scene/wtf/?" method="POST" data-pjax >
-    <input type="text" id="sidebar-display_name" class="form-control" value="{{scene.display_name}}">
+    {#<form action="/update/scene/wtf/?" method="POST" data-pjax >#}
+    {#<input type="text" id="sidebar-display_name" class="form-control" value="{{scene.display_name}}">#}
+    <a href="#" data-pk="{{scene.id}}" data-name="display_name" id="display_name" >{{scene.display_name}}</a>
     </form>
     <h4>Rating:</h4> 
     {% for i in range(scene.rating|int) %}

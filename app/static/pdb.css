@@ -100,6 +100,29 @@ body {
 }
 
 
+.editable-container.editable-inline {
+    width: 100%;
+}
 
+.form-inline .editableform {
+    width: 100%
+}
 
+/* TODO: this is hackish, but I can't figure out how else to make it go full-width */
+.editableform .control-group {
+    width: 80%;
+}
 
+.editable-input {
+    width: 100%
+}
+
+.editableform .form-control {
+    width: 100%
+}
+
+/* doesn't fucking work */
+
+#myeditable {
+    width: 400px;
+}

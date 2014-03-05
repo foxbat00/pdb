@@ -38,7 +38,7 @@ def search_view():
     app.logger.debug("in search_view")
     if "X-PJAX" in request.headers:
 	app.logger.debug("xpjax detected ")
-	if "query" in request.values:
+	if "query" in request.values:  # TODO: should be just request?
 	    rawquery = request.values.get('query')
 	    app.logger.debug("query = #%s#" % rawquery)
 	    query = percentSeparator(rawquery)
@@ -115,7 +115,7 @@ def get_facet(facet):
 
 
 # used by both the sidebar to get scene details and by sidebar ajax for getting things (to see if they exist mainly)
-@app.route('/get/<thing>/<id>', methods=('GET', 'POST'))
+@app.route('/getpjax/<thing>/<id>', methods=('GET', 'POST'))
 def get_jax(thing, id):
     app.logger.debug("inside get_jax")
     if "X-PJAX" in request.headers:			### PJAX only
@@ -146,9 +146,44 @@ def get_jax(thing, id):
 		app.logger.debug("get not yet implemented for type %s" % thing)
 	else:   
 	    app.logger.debug("XPJAX detected, but no id offered in url or id was not a number (q by str not yet)")
-    elif request.is_xhr:
-	tbl = getattr(models,thing.lower().capitalize())
+    else:
+	return redirect('/')
+		    
+
+
+
+# used for adding stars, tags, etc and the corresponding mapping entries to scene_*
+@app.route('/json/<action>/<thing>/', defaults={'id':None, 'col':None, 'value': None}, methods=('GET','POST') )
+@app.route('/json/<action>/<thing>/<id>', defaults={'col':None, 'value':None}, methods=('GET', 'POST') )
+@app.route('/json/<action>/<thing>/<col>/<value>', defaults={'id':None}, methods=('GET','POST') )
+def json_action(action, thing, id=None, col=None, value=None):
+
+    app.logger.debug("inside json")
+
+    if not request.is_xhr:  # in > or
+	app.logger.debug("no xhr header detected ")
+	return redirect('/')
+
+    app.logger.debug("received req = #%s#" % request)
+    if 'data' in request.values:
+	app.logger.debug("received request.data = #%s#" % request.data)
+    else:
+	app.logger.debug("no data content received")
+
+    # not > and > or
+    if not thing or not action:
+	app.logger.debug("thing or action missing")
+	abort()
+    app.logger.debug("action=%s, thing=%s" % (action, thing) )
+
+
+
+
+    # add doesn't require json or data
+    if action == 'get' and id:
+	tbl = getattr(models,thing)
 	o = None
+
 	# try to retrieve 
 	if is_number(id):
 	    id = int(id)
@@ -156,72 +191,75 @@ def get_jax(thing, id):
 	else:
 	    name = id
 	    o = session.query(tbl).filter(tbl.name.ilike(name)).first()
-	# prepare response
+
+
 	if o:
 	    # see http://stackoverflow.com/questions/7102754/jsonify-a-sqlalchemy-result-set-in-flask
 	    return o.json()
 	else:
-	    return json.dumps('')
+	    return json.dumps('{}')
+
+
+
+
+    # set up the jason response
+    if hasattr(request, 'json'):
+	app.logger.debug("received json.data = #%s#" % request.json)
+	#dct = json.loads(request.data)
+	dct = request.get_json()
+	app.logger.debug("json.data as dict = #%s#" % dct)
     else:
-	return redirect('/')
-		    
+	app.logger.debug("no json received")
+	abort()
 
 
-# used for the sidebar to edit scene info
-@app.route('/update/<thing>/<col>/<value>', methods=('GET','POST') )
-def update_jax(thing, col, value):
-    app.logger.debug("inside update_pjax")
-    if "X-PJAX" in request.headers or "XMLHttpRequest" in request.headers:
-	app.logger.debug("xjax detected ")
-	if thing and col and value:
-	    app.logger.debug("in update_pjax for thing %s, col %s, and value %s" % (thing, col, value))
-	    tbl = getattr(models, thing.lower.capitalize())
-	    o = session.query(tbl).get(id)
-	    if o and setattr(o,col.lower(),value):
-		# TODO consider cleaning up value first according to whatever scheme thing requires
-		return True
-	    else:
-		app.logger.debug("update failed")
-		return False
-	else: 
-	    app.logger.debug("XPJAX detected, but no thing or col or value offered in url")
-    return redirect('/')
-		    
 
 
-# used for adding stars, tags, etc and the corresponding mapping entries to scene_*
-@app.route('/add/<thing>/', methods=('POST',) )
-def add_jax(thing):
+    if action == 'add' or action == 'delete':
 
-    app.logger.debug("inside add")
-
-    if  request.is_xhr:  # in > or
-	app.logger.debug("xjax detected ")
-	if thing:
-	    app.logger.debug("received req = #%s#" % request)
-	    app.logger.debug("received request.data = #%s#" % request.data)
-	    app.logger.debug("received json.data = #%s#" % request.json)
-	    #dct = json.loads(request.data)
-	    dct = request.get_json()
-	    app.logger.debug("json.data as dict = #%s#" % dct)
-
-	    tbl = getattr(models, thing)
-	    q = session.query(tbl)
-	    for k,v in dct.iteritems():
-		q = q.filter(getattr(tbl,k.lower())==v)
-	    ex = q.first()
-	    app.logger.debug("translated query:= %s" % q)
+	tbl = getattr(models, thing)
+	q = session.query(tbl)
+	for k,v in dct.iteritems():
+	    q = q.filter(getattr(tbl,k.lower())==v)
+	ex = q.first()
+	app.logger.debug("translated query:= %s" % q)
+	if action == 'add':
 	    if not ex:
 		new = tbl(**dct)
 		app.logger.debug("adding new object: %s" % new)
 		session.add(new)
 		session.commit()
-		return json.dumps('')
+		return new.json()
 	    else:
 		app.logger.debug("add failed because existing")
-		return json.dumps('')
-	else: 
-	    app.logger.debug("XPJAX detected, but no thing or col or value offered in url")
-    return redirect('/')
+		return json.dumps('{}')
+	elif action == 'delete':
+	    if ex:
+		session.delete(ex)
+		session.commit()
+	    else:
+		app.logger.debug("existing not found for delete")
+	    return json.dumps('{}')
 		    
+
+
+    elif action == 'update':
+	    app.logger.debug("in update")
+	    tbl = getattr(models, thing.lower().capitalize())
+	    o = session.query(tbl).get(dct['pk'])
+	    if o: 
+		# TODO consider cleaning up value first according to whatever scheme thing requires
+		setattr(o,dct['name'].lower(), dct['value'])
+		session.commit()
+		app.logger.debug("set %s %s %s to %s" % (thing, dct['pk'], dct['name'], dct['value']))
+		return json.dumps('{"success": true}')
+	    else:
+		app.logger.debug("update failed")
+		return json.dumps('{"success": false, "msg": "Update failed: not found"}')
+
+    else:
+	app.logger.debug("action not understood")
+	abort()
+
+
 

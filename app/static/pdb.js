@@ -86,12 +86,12 @@ $( document ).ready(function() {
 	    placeholder: "Tags ...",
 	    minimumInputLength: 2,
 	    multiple: true,
-	    tokenSeparators: [","],
+	    tokenSeparators: [","] /*,
 	    createSearchChoice:function(term, data) { 
 		if ($(data).filter(function() { return this.text.localeCompare(term)===0; }).length===0) {
-		    return {id:term, text:term};
+		    return {id:id, text:term};
 		} 
-	    }
+	    } */
 	}); 
 
 
@@ -107,7 +107,7 @@ $( document ).ready(function() {
 		$.ajax({
 		    dataType: 'json',   // causes error
 		    type: 'POST',
-		    url: '/get/tag/'+e.added.id,
+		    url: '/json/get/Tag/'+e.added.id,
 		    contentType: 'application/json; charset=utf-8',
 		    success: function(response){
 			console.log("response = #"+response+"#");
@@ -124,7 +124,7 @@ $( document ).ready(function() {
 			}
 
 			//create association
-			if(!create_assoc('SceneTag',e.added.id, scene_id)) {
+			if(!alter_assoc('add','SceneTag',e.added.id, scene_id)) {
 			    //failed
 			    return false;
 			}
@@ -133,8 +133,10 @@ $( document ).ready(function() {
 		});
 	    }
 	    else if(e.removed){
-		console.log('removed: ' + e.added.text + ' id ' + e.added.id)
+		console.log('removed: ' + e.removed.text + ' id ' + e.removed.id)
 		//$.post( "/view/"+e.currentTarget.id+"/tag/remove", { tagRemove: e.removed.text } );
+		alter_assoc('delete','SceneTag',e.removed.id, scene_id);
+
 	    }
 	});
 
@@ -142,20 +144,10 @@ $( document ).ready(function() {
 
 
 
-	function add_new(thing,values) {
-	    console.log("add_new t="+thing+"   values="+values)
-	    $.ajax({
-		type: 'POST',
-		url: '/add/'+thing+'/',
-		contentType: 'application/json; charset=utf-8',
-		dataType: 'json',
-		data: JSON.stringify(values)
-	    }); 
-	}
 
 
-	function create_assoc(linktbl,tag,scene) {
-	    console.log("create_assoc linktbl="+linktbl+"tag="+tag+"   scene="+scene)
+	function alter_assoc(action,linktbl,tag,scene) {
+	    console.log("alter_assoc action="+action+" linktbl="+linktbl+" tag="+tag+"   scene="+scene)
 	    var values = {
 	    'scene_id':scene,
 	    'tag_id':tag
@@ -163,7 +155,7 @@ $( document ).ready(function() {
 		
 	    $.ajax({
 		type: 'POST',
-		url: '/add/'+linktbl+'/',
+		url: '/json/' +action+ '/' +linktbl+ '/',
 		dataType: 'json',
 		contentType: 'application/json; charset=utf-8',
 		data: JSON.stringify(values)
@@ -187,6 +179,42 @@ $( document ).ready(function() {
 		}]
 	    }); 
 	}
+
+
+	function add_new(thing,values) {
+	    console.log("add_new t="+thing+"   values="+values)
+	    $.ajax({
+		type: 'POST',
+		url: '/json/add/'+thing+'/',
+		contentType: 'application/json; charset=utf-8',
+		dataType: 'json',
+		data: JSON.stringify(values)
+	    }); 
+	}
+
+
+	// x-editable
+	$.fn.editable.defaults.mode = 'inline';
+	$('#display_name').editable({
+	    url: '/json/update/Scene/',
+	    inputClass: 'myeditable',
+	    ajaxOptions: {
+		type: 'POST',
+		dataType: 'json',
+		contentType: 'application/json; charset=utf-8'
+	    },
+	    validate: function(value) {
+		if($.trim(value) == '') return 'This is required.';
+	    },
+	    params: function(params) {
+	        return JSON.stringify(params);
+	    },
+	    success: function(response, newValue) {
+	        if(!response.success) return response.msg;
+	    }
+	    //mode: 'inline'
+	});
+
 
 
 
