@@ -69,7 +69,8 @@ CREATE TABLE scene (
 CREATE TABLE alias (
     id			serial		PRIMARY KEY,
     name		text		NOT NULL UNIQUE,
-    active		boolean		NOT NULL DEFAULT 't'
+    active		boolean		NOT NULL DEFAULT 't',
+    added_on		timestamp	NOT NOLL DEFAULT now()
 );
 
 
