@@ -246,12 +246,16 @@ def json_action(action, thing, id=None, col=None, value=None):
     elif action == 'update':
 	    app.logger.debug("in update")
 	    tbl = getattr(models, thing.lower().capitalize())
-	    o = session.query(tbl).get(dct['pk'])
+	    pk = dct['pk']
+	    del dct['pk'] # remove so we don't pick it up later
+	    o = session.query(tbl).get(pk)
 	    if o: 
 		# TODO consider cleaning up value first according to whatever scheme thing requires
-		setattr(o,dct['name'].lower(), dct['value'])
+		#setattr(o,dct['name'].lower(), dct['value'])
+		for k,v in dct.iteritems():
+		    setattr(o,k.lower(), v)
 		session.commit()
-		app.logger.debug("set %s %s %s to %s" % (thing, dct['pk'], dct['name'], dct['value']))
+		app.logger.debug("set %s %s:  %s" % (thing, pk, dct))
 		return json.dumps('{"success": true}')
 	    else:
 		app.logger.debug("update failed")

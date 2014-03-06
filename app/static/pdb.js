@@ -215,7 +215,25 @@ $( document ).ready(function() {
 	    //mode: 'inline'
 	});
 
-
+	$('#myrating').raty({
+	    score: function() {
+		return $(this).attr('data-score');
+	    },
+	    number: 5,
+	    click: function(score, evt) {
+		console.log('ID: ' + $(this).attr('id') + "  score: " + score + "  event: " + evt);
+		$.ajax({
+		    type: 'POST',
+		    url: '/json/update/scene/',
+		    contentType: 'application/json; charset=utf-8',
+		    dataType: 'json',
+		    data: JSON.stringify({"pk":scene_id, "rating":score})
+		}); 
+	    },
+	    cancel: 'true',
+	    cancelPlace: 'right',
+	    path: '/static/bower_components/raty/lib/img/'
+	});
 
 
     } // rightbar_setup
