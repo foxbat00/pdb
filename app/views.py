@@ -220,11 +220,12 @@ def json_action(action, thing, id=None, col=None, value=None):
 	tbl = getattr(models, thing)
 	q = session.query(tbl)
 	aliases = None
-	for k,v in dct.iteritems():
+	for k in dct.keys():
 	    if k == 'aliases':
-		aliases = v
+		aliases = dct[k]
+		del dct[k]
 	    else: 
-		q = q.filter(getattr(tbl,k.lower())==v)
+		q = q.filter(getattr(tbl,k.lower())==dct[k])
 	ex = q.first()
 
 	app.logger.debug("translated query:= %s" % q)
@@ -238,15 +239,15 @@ def json_action(action, thing, id=None, col=None, value=None):
 		app.logger.debug("returning: %s" % new.json() )
 
 		if aliases:
-		    for a in [x.strip() for x in aliases.split(',')]:
+		    for a in [x.strip().lower() for x in aliases.split(',')]:
 			exa = session.query(Alias).filter(Alias.name == a).first()
 			if not exa:
-			    exa = Alias(a.lower())
-			    session.add(a)
+			    exa = Alias(a)
+			    session.add(exa)
 			    session.commit()
-			    app.logger.debug("added: %s" % a)
+			    app.logger.debug("added: %s" % exa)
 			    linktbl = getattr(models, 'Alias'+thing)
-			    lt = linktbl(a.id, new.id)
+			    lt = linktbl(exa.id, new.id)
 			    session.add(lt)
 			    session.commit()
 			    app.logger.debug("added: %s" % lt)

@@ -284,7 +284,7 @@ class AliasTag(Base):
 	self.tentative = tentative
 
     def __repr__(self): 
-	return "<AliasTag alias_id=%d tag_id=%d tentative=%s" % (self.alias_id, self.tag_id, self.tentive)
+	return "<AliasTag alias_id=%d tag_id=%d tentative=%s" % (self.alias_id, self.tag_id, self.tentative)
     def json(self):
         return to_json(self, self.__class__)
 
@@ -299,7 +299,7 @@ class AliasStar(Base):
 	self.tentative = tentative
 
     def __repr__(self): 
-	return "<AliasStar alias_id=%d star_id=%d tentative=%s" % (self.alias_id, self.star_id, self.tentive)
+	return "<AliasStar alias_id=%d star_id=%d tentative=%s" % (self.alias_id, self.star_id, self.tentative)
     def json(self):
         return to_json(self, self.__class__)
 
@@ -313,7 +313,7 @@ class AliasLabel(Base):
 	self.tentative = tentative
 
     def __repr__(self): 
-	return "<AliasLabel alias_id=%d label_id=%d tentative=%s" % (self.alias_id, self.label_id, self.tentive)
+	return "<AliasLabel alias_id=%d label_id=%d tentative=%s" % (self.alias_id, self.label_id, self.tentative)
     def json(self):
         return to_json(self, self.__class__)
 
@@ -327,7 +327,7 @@ class AliasSeries(Base):
 	self.tentative = tentative
 
     def __repr__(self): 
-	return "<AliasSeries alias_id=%d series_id=%d tentative=%s" % (self.alias_id, self.series_id, self.tentive)
+	return "<AliasSeries alias_id=%d series_id=%d tentative=%s" % (self.alias_id, self.series_id, self.tentative)
     def json(self):
         return to_json(self, self.__class__)
 

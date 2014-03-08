@@ -47,6 +47,7 @@ def isQuoteEnclosed(mystring):
 def mulch(mystring):
     # TODO: consider the wisdom of this change... do we ever care about numbers?
     #return re.findall(r'\w+',mystring)
+    # needs to filter out ratings && at least
     return re.findall(r'[A-Za-z]+',mystring)
 
 # if small is a subsequence of big, returns (start, end+1) of sequence occurence
@@ -67,6 +68,7 @@ def contains(small, big):
 
 
 # searches for condition in mulched_wordbag
+# doesn't just accpet wordbag for efficiency purposes in tagger
 def wordmatch(condition, mulched_wordbag):
     if contains(mulch(condition),mulched_wordbag):
         return True

@@ -239,6 +239,7 @@ def FileScanner (fileq,sceneq):
 		if r.id not in excludeRepos:
 		    logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
 		    if not os.path.isfile(modJoin(r.path,fi.path,fi.name)):
+			# set delete date
 			fi.deleted_on = datetime.datetime.now()
 		    else:
 			fi.last_seen = datetime.datetime.now()
@@ -247,11 +248,12 @@ def FileScanner (fileq,sceneq):
 
 	    # now that all fileInst have been checked, before creating a new one, let's see if we can fix an old
 	    # if an instance has been deleted recently, let's reactivate it 
+	    # if this file_inst matches a deleted one by words, fully remove the old one (it's a move)
 	    for q in fis:
 		(fi,r) = q
 		d = fi.deleted_on
 		if d and d > datetime.datetime.now() - datetime.timedelta(weeks=1):
-		    if args.enable_file_inst_move or fi.name == fname:
+		    if args.enable_file_inst_move and wordmatch(fi.name, mulch(fname)):
 			logger.debug("      reactivating old instance")
 			fi,r = fis
 			fi.name = fname

@@ -24,6 +24,7 @@ function findWithAttr(array, attr, value) {
     }
 }
 
+var aliases;
 
 ////////////////////////  document  ready  /////////////////////
 
@@ -84,7 +85,6 @@ $( document ).ready(function() {
 
     function rightbar_setup() {
 
-	//console.log("tags = #"+JSON.stringify(tags)+"#");
 
 	// facets 
 
@@ -182,21 +182,27 @@ $( document ).ready(function() {
 
 
 	function confirm_add(tag, callback) {
-	    console.log('confirm_add for tag'+tag);
+	    console.log('confirm_add for tag '+tag);
 	    BootstrapDialog.show({
 		message: ' \
 		    <p>Confirm adding tag: "'+tag+'"</p> \
-		    <p>Aliases: <input type="text" id="aliases" style="width:60%" /></p> \
+		    <p>Aliases: <input type="text" id="myaliases" style="width:60%" /></p> \
 		    <p><small><i>Comma separated; a blank value creates no aliases</small></i></p> \
+		    <script>$("#myaliases").bind("change, paste, keyup",  \
+			function () { aliases = $(this).val(); \
+			console.log("inside onchange, aliases ="+aliases+" this.value = "+$(this).val() ); }); \
+		    </script> \
 		',
 		buttons: [{
 		    label: 'Confirm new tag "'+tag+'"',
 		    action: function(dialogItself) { 
 			//var d = {"name":tag};
 			console.log("tag = "+tag);
-			var d = {}
-			var aliases = $('#aliases').value;
-			d["aliases"] = aliases;
+			var d = {};
+			var a = aliases;
+			console.log("a = "+a);
+			//var aliases = $('#aliases').value;
+			d["aliases"] = a;
 			d["name"] = tag;
 			console.log("d = "+JSON.stringify(d));
 			ret = add_new('Tag', d, function (id) {
