@@ -126,3 +126,10 @@ body {
 #myeditable {
     width: 400px;
 }
+
+
+/* unfuck select2 shrinking when tags deleted */
+/* see http://stackoverflow.com/questions/16146718/selectboxs-width-shrinks-on-tag-deletion-in-select2 */
+// #s2id_groupSelect, .select2-input, .select2-container, .select2-search-field, .select2-choices {
+// width: 100%;
+// }

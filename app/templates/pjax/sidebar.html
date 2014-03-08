@@ -20,7 +20,7 @@
     </form>
     <h4>Rating:</h4> 
     {#<input type="number" name="rating" id="rating" class="rating" value="{{scene.rating}}" data-max="5" 
-	data-min="1" data-empty-value="0" data-clearable="&nbsp;"/>#}
+	data-min="1" data-empty-value="0" data-clearable="&nbsp;" style="width: 100%"/>#}
     <div id="myrating" data-score="{% if scene.rating %}{{scene.rating}}{%else%}0{%endif%}"></div>
     {#
     {% for i in range(scene.rating|int) %}

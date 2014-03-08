@@ -139,7 +139,7 @@ def get_jax(thing, id):
 		    .all()
 		#facets['taglist'] = jsonifyList(taglist)
 		facets['alltags'] = jsonifyList(session.query(Tag).all())
-		facets['thesetags'] = ','.join(str(x.name) for x in taglist)
+		facets['thesetags'] = ','.join(str(x.id) for x in taglist)
 		return render_template('pjax/sidebar.html',  \
 		    scene=o, deleted=deleted, file_insts=file_insts, facets=facets)
 	    else:

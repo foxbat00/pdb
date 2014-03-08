@@ -16,7 +16,13 @@ $.fn.clicktoggle = function(a, b) {
 
 // now you can use it elsewhere in place of existing .toggle
 
-
+function findWithAttr(array, attr, value) {
+    for(var i = 0; i < array.length; i += 1) {
+	if(array[i][attr] == value) {
+	    return array[i];
+	}
+    }
+}
 
 
 ////////////////////////  document  ready  /////////////////////
@@ -81,18 +87,63 @@ $( document ).ready(function() {
 	//console.log("tags = #"+JSON.stringify(tags)+"#");
 
 	// facets 
+
+	function format(item) {
+	    return item.text;
+	}
+
 	$('#mytags').select2({
-	    tags: tags,
-	    placeholder: "Tags ...",
+	    placeholder: 'Search',
+	    allowClear: true,
 	    minimumInputLength: 2,
 	    multiple: true,
-	    tokenSeparators: [","] /*,
-	    createSearchChoice:function(term, data) { 
-		if ($(data).filter(function() { return this.text.localeCompare(term)===0; }).length===0) {
-		    return {id:id, text:term};
-		} 
-	    } */
-	}); 
+	    //tags: tags,
+	    tokenSeparators: [','],
+
+	    data: {
+		results: tags,
+		text: 'text'
+	    },
+	    initSelection: function (element, callback) {
+
+
+		var data = [];
+		$($('#mytags').val().split(",")).each(function (i) {
+
+
+		    var o = findWithAttr(tags, 'id', this);
+
+		    if (o) {
+			data.push({
+			    id: o.id,
+			    text: o.text
+			});
+		    } else {
+			console.log("findWithAttr returned none; likely invalid id");
+		    }
+		});
+		console.log("data = " + JSON.stringify(data));
+		callback(data);
+	    },
+	    createSearchChoice: function (term, data) {
+		console.log("create");
+		if ($(data).filter(function () {
+		    return this.text.localeCompare(term) === 0;
+		}).length === 0) {
+		    // call $.post() to add this term to the server, receive back id
+		    // return {id:id, text:term}
+		    // or detect this shiftiness and do it below in the on-change
+
+		    return {
+			id: -1,
+			text: term
+		    };
+		}
+	    },
+
+	    formatSelection: format,
+	    formatResult: format
+	});
 
 
 	$('#mytags').on("change", function (e)  {
@@ -104,35 +155,21 @@ $( document ).ready(function() {
 		//$.post( "/view/"+e.currentTarget.id+"/tag/add", { tagAdd: e.added.text } );
 		
 		// figure out if tag already exists on server
-		$.ajax({
-		    dataType: 'json',   // causes error
-		    type: 'POST',
-		    url: '/json/get/Tag/'+e.added.id,
-		    contentType: 'application/json; charset=utf-8',
-		    success: function(response){
-			console.log("response = #"+response+"#");
-			var ret = response;
-			//var ret = JSON.parse(response); 
-			console.log("ret = #"+ret+"#");
-
-			if (ret == {}) {
-			    // tag does not exist on server
-			    if(!confirm_add(e.added.text)) {
-				//cancel
-				return false;
-			    }
-			}
-
-			//create association
-			if(!alter_assoc('add','SceneTag',e.added.id, scene_id)) {
-			    //failed
-			    return false;
-			}
-
+		if (e.added.id == -1) {
+		    // tag does not exist on server
+		    var ret = confirm_add(e.added); 
+		    console.log("ret = "+JSON.stringify(ret));
+		    if(ret != {} ) {
+			e.added.id = ret.id
 		    }
-		});
-	    }
-	    else if(e.removed){
+		}
+
+		//create association
+		if(!alter_assoc('add','SceneTag',e.added.id, scene_id)) {
+		    //failed
+		    return false;
+		}
+	    } else if(e.removed){
 		console.log('removed: ' + e.removed.text + ' id ' + e.removed.id)
 		//$.post( "/view/"+e.currentTarget.id+"/tag/remove", { tagRemove: e.removed.text } );
 		alter_assoc('delete','SceneTag',e.removed.id, scene_id);
@@ -168,14 +205,14 @@ $( document ).ready(function() {
 	    BootstrapDialog.show({
 		message: 'Confirm adding tag: "'+tag+'"',
 		buttons: [{
-		label: 'Confirm new tag "'+tag+'"',
-		action: add_new('tag', {'name': tag } )
+		    label: 'Confirm new tag "'+tag+'"',
+		    action: function(tag) { return add_new('Tag', {'name': tag}); }
 		}, {
-		label: 'Cancel',
-		cssClass: 'btn-primary',
-		action: function(dialogItself){
-		    dialogItself.close();
-		}
+		    label: 'Cancel',
+		    cssClass: 'btn-primary',
+		    action: function(dialogItself){
+			dialogItself.close();
+		    }
 		}]
 	    }); 
 	}
@@ -188,12 +225,20 @@ $( document ).ready(function() {
 		url: '/json/add/'+thing+'/',
 		contentType: 'application/json; charset=utf-8',
 		dataType: 'json',
-		data: JSON.stringify(values)
+		data: JSON.stringify(values), 
+		success: function(response){
+		    console.log("response = #"+response+"#");
+		    //var ret = JSON.parse(response); 
+		    if ( response && response != {}) {
+			return response;
+		    }
+		}
+
 	    }); 
 	}
 
 
-	// x-editable
+	// x-editable for name
 	$.fn.editable.defaults.mode = 'inline';
 	$('#display_name').editable({
 	    url: '/json/update/Scene/',
@@ -215,6 +260,10 @@ $( document ).ready(function() {
 	    //mode: 'inline'
 	});
 
+
+
+
+	// rating
 	$('#myrating').raty({
 	    score: function() {
 		return $(this).attr('data-score');
