@@ -219,10 +219,16 @@ def json_action(action, thing, id=None, col=None, value=None):
 
 	tbl = getattr(models, thing)
 	q = session.query(tbl)
+	aliases = None
 	for k,v in dct.iteritems():
-	    q = q.filter(getattr(tbl,k.lower())==v)
+	    if k == 'aliases':
+		aliases = v
+	    else: 
+		q = q.filter(getattr(tbl,k.lower())==v)
 	ex = q.first()
+
 	app.logger.debug("translated query:= %s" % q)
+	app.logger.debug("aliases received = %s" % aliases)
 	if action == 'add':
 	    if not ex:
 		new = tbl(**dct)
@@ -230,6 +236,20 @@ def json_action(action, thing, id=None, col=None, value=None):
 		session.commit()
 		app.logger.debug("adding new object: %s" % new)
 		app.logger.debug("returning: %s" % new.json() )
+
+		if aliases:
+		    for a in [x.strip() for x in aliases.split(',')]:
+			exa = session.query(Alias).filter(Alias.name == a).first()
+			if not exa:
+			    exa = Alias(a.lower())
+			    session.add(a)
+			    session.commit()
+			    app.logger.debug("added: %s" % a)
+			    linktbl = getattr(models, 'Alias'+thing)
+			    lt = linktbl(a.id, new.id)
+			    session.add(lt)
+			    session.commit()
+			    app.logger.debug("added: %s" % lt)
 		return new.json()
 	    else:
 		app.logger.debug("add failed because existing")

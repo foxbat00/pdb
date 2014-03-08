@@ -184,13 +184,19 @@ $( document ).ready(function() {
 	function confirm_add(tag, callback) {
 	    console.log('confirm_add for tag'+tag);
 	    BootstrapDialog.show({
-		message: 'Confirm adding tag: "'+tag+'"',
+		message: ' \
+		    <p>Confirm adding tag: "'+tag+'"</p> \
+		    <p>Aliases: <input type="text" id="aliases" style="width:60%" /></p> \
+		    <p><small><i>Comma separated; a blank value creates no aliases</small></i></p> \
+		',
 		buttons: [{
 		    label: 'Confirm new tag "'+tag+'"',
 		    action: function(dialogItself) { 
 			//var d = {"name":tag};
 			console.log("tag = "+tag);
 			var d = {}
+			var aliases = $('#aliases').value;
+			d["aliases"] = aliases;
 			d["name"] = tag;
 			console.log("d = "+JSON.stringify(d));
 			ret = add_new('Tag', d, function (id) {
