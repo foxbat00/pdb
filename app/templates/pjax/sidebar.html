@@ -14,14 +14,10 @@
     {% endif %}
     {# figure out if deleted, show label-pill #}
     <h4>Display Name:</h4> 
-    {#<form action="/update/scene/wtf/?" method="POST" data-pjax >#}
-    {#<input type="text" id="sidebar-display_name" class="form-control" value="{{scene.display_name}}">#}
     <a href="#" data-pk="{{scene.id}}" data-name="display_name" id="display_name" >{{scene.display_name}}</a>
     </form>
     <h4>Rating:</h4> 
-    {#<input type="number" name="rating" id="rating" class="rating" value="{{scene.rating}}" data-max="5" 
-	data-min="1" data-empty-value="0" data-clearable="&nbsp;" style="width: 100%"/>#}
-    <div id="myrating" data-score="{% if scene.rating %}{{scene.rating}}{%else%}0{%endif%}"></div>
+    <div id="myrating" data-score="{% if scene.rating %}{{scene.rating}}{%else%}0{%endif%}"> </div>
     {#
     {% for i in range(scene.rating|int) %}
 	<span class="glyphicon glyphicon-star"></span>
@@ -35,7 +31,7 @@
     #}
     {% if facets  %}
 	    <h4>Tags:</h4>
-	    <input type='text'  id="mytags" value="{{ facets['thesetags'] }}" />
+	    <input type='text'  id="mytags" value="{{ facets['thesetags'] }}" style="width:80%" />
     {% endif %}
     
 
