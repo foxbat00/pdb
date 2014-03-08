@@ -157,17 +157,21 @@ $( document ).ready(function() {
 		// figure out if tag already exists on server
 		if (e.added.id == -1) {
 		    // tag does not exist on server
-		    var ret = confirm_add(e.added); 
-		    console.log("ret = "+JSON.stringify(ret));
-		    if(ret != {} ) {
-			e.added.id = ret.id
-		    }
+		    confirm_add(e.added.text, function(id) {
+			e.added.id = id; 
+			if (!alter_assoc('add','SceneTag',e.added.id, scene_id)) {
+			    //failed
+			    return false;
+			}
+		    } ); 
 		}
 
 		//create association
-		if(!alter_assoc('add','SceneTag',e.added.id, scene_id)) {
-		    //failed
-		    return false;
+		else {
+		    if (!alter_assoc('add','SceneTag',e.added.id, scene_id)) {
+			//failed
+			return false;
+		    }
 		}
 	    } else if(e.removed){
 		console.log('removed: ' + e.removed.text + ' id ' + e.removed.id)
@@ -200,13 +204,18 @@ $( document ).ready(function() {
 	}
 
 
-	function confirm_add(tag) {
+	function confirm_add(tag, callback) {
 	    console.log('confirm_add')
 	    BootstrapDialog.show({
 		message: 'Confirm adding tag: "'+tag+'"',
 		buttons: [{
 		    label: 'Confirm new tag "'+tag+'"',
-		    action: function(tag) { return add_new('Tag', {'name': tag}); }
+		    action: function(tag) { 
+			ret = add_new('Tag', {'name': tag}); 
+			if (ret && ret != {} ) {
+			    callback(ret.id);
+			}
+		    }
 		}, {
 		    label: 'Cancel',
 		    cssClass: 'btn-primary',

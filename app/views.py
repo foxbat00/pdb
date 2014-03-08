@@ -229,6 +229,7 @@ def json_action(action, thing, id=None, col=None, value=None):
 		app.logger.debug("adding new object: %s" % new)
 		session.add(new)
 		session.commit()
+		app.logger.debug("returning: %s" % new.json() )
 		return new.json()
 	    else:
 		app.logger.debug("add failed because existing")
