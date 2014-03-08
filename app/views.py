@@ -226,9 +226,9 @@ def json_action(action, thing, id=None, col=None, value=None):
 	if action == 'add':
 	    if not ex:
 		new = tbl(**dct)
-		app.logger.debug("adding new object: %s" % new)
 		session.add(new)
 		session.commit()
+		app.logger.debug("adding new object: %s" % new)
 		app.logger.debug("returning: %s" % new.json() )
 		return new.json()
 	    else:

@@ -157,17 +157,15 @@ $( document ).ready(function() {
 		// figure out if tag already exists on server
 		if (e.added.id == -1) {
 		    // tag does not exist on server
-		    confirm_add(e.added.text, function(id) {
+		    var name = e.added.text;
+		    confirm_add(name, function(id) {
 			e.added.id = id; 
 			if (!alter_assoc('add','SceneTag',e.added.id, scene_id)) {
 			    //failed
 			    return false;
 			}
 		    } ); 
-		}
-
-		//create association
-		else {
+		} else { //create association
 		    if (!alter_assoc('add','SceneTag',e.added.id, scene_id)) {
 			//failed
 			return false;
@@ -183,8 +181,53 @@ $( document ).ready(function() {
 
 
 
+	function confirm_add(tag, callback) {
+	    console.log('confirm_add for tag'+tag);
+	    BootstrapDialog.show({
+		message: 'Confirm adding tag: "'+tag+'"',
+		buttons: [{
+		    label: 'Confirm new tag "'+tag+'"',
+		    action: function(dialogItself) { 
+			//var d = {"name":tag};
+			console.log("tag = "+tag);
+			var d = {}
+			d["name"] = tag;
+			console.log("d = "+JSON.stringify(d));
+			ret = add_new('Tag', d, function (id) {
+			    dialogItself.close();
+			    callback(id); 
+			});
+		    }
+		}, {
+		    label: 'Cancel',
+		    cssClass: 'btn-primary',
+		    action: function(dialogItself){
+			dialogItself.close();
+		    }
+		}]
+	    }); 
+	}
 
 
+	function add_new(thing,values, callback) {
+	    console.log("add_new t="+thing+"   values="+values);
+	    console.log("add_new t="+thing+"   values="+JSON.stringify(values));
+	    $.ajax({
+		type: 'POST',
+		url: '/json/add/'+thing+'/',
+		contentType: 'application/json; charset=utf-8',
+		dataType: 'json',
+		data: JSON.stringify(values), 
+		success: function(response){
+		    console.log("response = #"+response+"#");
+		    //var ret = JSON.parse(response); 
+		    if ( response && response != {}) {
+			callback(response.id);
+		    }
+		}
+
+	    }); 
+	}
 
 
 	function alter_assoc(action,linktbl,tag,scene) {
@@ -203,48 +246,6 @@ $( document ).ready(function() {
 	    });
 	}
 
-
-	function confirm_add(tag, callback) {
-	    console.log('confirm_add')
-	    BootstrapDialog.show({
-		message: 'Confirm adding tag: "'+tag+'"',
-		buttons: [{
-		    label: 'Confirm new tag "'+tag+'"',
-		    action: function(tag) { 
-			ret = add_new('Tag', {'name': tag}); 
-			if (ret && ret != {} ) {
-			    callback(ret.id);
-			}
-		    }
-		}, {
-		    label: 'Cancel',
-		    cssClass: 'btn-primary',
-		    action: function(dialogItself){
-			dialogItself.close();
-		    }
-		}]
-	    }); 
-	}
-
-
-	function add_new(thing,values) {
-	    console.log("add_new t="+thing+"   values="+values)
-	    $.ajax({
-		type: 'POST',
-		url: '/json/add/'+thing+'/',
-		contentType: 'application/json; charset=utf-8',
-		dataType: 'json',
-		data: JSON.stringify(values), 
-		success: function(response){
-		    console.log("response = #"+response+"#");
-		    //var ret = JSON.parse(response); 
-		    if ( response && response != {}) {
-			return response;
-		    }
-		}
-
-	    }); 
-	}
 
 
 	// x-editable for name
