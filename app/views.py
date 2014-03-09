@@ -134,7 +134,7 @@ def get_jax(thing, id):
 		    factbl = getattr(models, fac)
 		    ltbl = getattr(models, 'Scene'+fac)
 
-		    facets['all'+fac+'s'] = jsonifyList(session.query(factbl).all())
+		    facets['all'+fac.lower()+'s'] = jsonifyList(session.query(factbl).all())
 
 
 		    file_insts = session.query(FileInst).join(File, FileInst.file_id == File.id) \
@@ -147,8 +147,9 @@ def get_jax(thing, id):
 			.filter(ltbl.scene_id == o.id) \
 			.all()
 
-		    facets['these'+fac+'s'] = ','.join(str(x.id) for x in taglist)
+		    facets['these'+fac.lower()+'s'] = ','.join(str(x.id) for x in taglist)
 
+		app.logger.debug("facets = %s", facets)
 		return render_template('pjax/sidebar.html',  \
 		    scene=o, deleted=deleted, file_insts=file_insts, facets=facets)
 

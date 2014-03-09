@@ -57,7 +57,7 @@ class ScanFile():
 	self.fsize = fsize
     def __repr__(self):
 	return "<ScanFile repo=%d, relpath=%s, fname=%s, fsize=%d>" \
-	    % (self.repo, self.relpath, self.fname, self.fsize))
+	    % (self.repo, self.relpath, self.fname, self.fsize)
 
 
 class UpdateFile():

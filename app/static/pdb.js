@@ -102,10 +102,17 @@ $( document ).ready(function() {
 	function initSelection(element, callback) {
 
 	    var data = [];
-	    $($('#mytags').val().split(",")).each(function (i) {
+	    //$($('#mytags').val().split(",")).each(function (i) {
+	    $($(element).val().split(",")).each(function (i) {
 
 
-		var o = findWithAttr(tags, 'id', this);
+		var o;
+		if ($(element).attr('id') == 'mytags') {
+		    o = findWithAttr(tags, 'id', this);
+		} else if ($(element).attr('id') == 'mystars') {
+		    o = findWithAttr(stars, 'id', this);
+		}
+		
 
 		if (o) {
 		    data.push({
@@ -174,7 +181,7 @@ $( document ).ready(function() {
 	    $(this).on("change", function (e)  {
 		console.log("change "+JSON.stringify({val:e.val, added:e.added, removed:e.removed})); 
 		console.log('current target id = '+e.currentTarget.id);
-		var target = capitalize(currentTarget.id.replace('my',''));
+		var target = capitalize(e.currentTarget.id.replace('my',''));
 		console.log('target = '+target);
 
 		if(e.added){
@@ -184,7 +191,7 @@ $( document ).ready(function() {
 		    if (e.added.id == -1) {
 			// tag does not exist on server
 			var name = e.added.text;
-			confirm_add(name, function(id) {
+			confirm_add(target, name, function(id) {
 			    e.added.id = id; 
 			    if (!alter_assoc('add',target,e.added.id, scene_id)) {
 				//failed
