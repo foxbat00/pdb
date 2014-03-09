@@ -129,19 +129,29 @@ def get_jax(thing, id):
 	    if thing == 'scene':    
 		deleted = o.isDeleted()
 		facets = {}
-		file_insts = session.query(FileInst).join(File, FileInst.file_id == File.id) \
-		    .join(SceneFile, File.id ==SceneFile.file_id) \
-		    .filter(SceneFile.scene_id == id).all()
-		taglist = session.query(Tag) \
-		    .select_from(SceneTag) \
-		    .join(Tag, Tag.id == SceneTag.tag_id) \
-		    .filter(SceneTag.scene_id == o.id) \
-		    .all()
-		#facets['taglist'] = jsonifyList(taglist)
-		facets['alltags'] = jsonifyList(session.query(Tag).all())
-		facets['thesetags'] = ','.join(str(x.id) for x in taglist)
+		for fac in ("Tag", "Star"):
+
+		    factbl = getattr(models, fac)
+		    ltbl = getattr(models, 'Scene'+fac)
+
+		    facets['all'+fac+'s'] = jsonifyList(session.query(factbl).all())
+
+
+		    file_insts = session.query(FileInst).join(File, FileInst.file_id == File.id) \
+			.join(SceneFile, File.id ==SceneFile.file_id) \
+			.filter(SceneFile.scene_id == id).all()
+
+		    taglist = session.query(factbl) \
+			.select_from(ltbl) \
+			.join(factbl, factbl.id == getattr(ltbl, fac.lower()+'_id')) \
+			.filter(ltbl.scene_id == o.id) \
+			.all()
+
+		    facets['these'+fac+'s'] = ','.join(str(x.id) for x in taglist)
+
 		return render_template('pjax/sidebar.html',  \
 		    scene=o, deleted=deleted, file_insts=file_insts, facets=facets)
+
 	    else:
 		app.logger.debug("get not yet implemented for type %s" % thing)
 	else:   

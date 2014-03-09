@@ -24,6 +24,11 @@ function findWithAttr(array, attr, value) {
     }
 }
 
+function capitalize(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+
 var aliases;
 
 ////////////////////////  document  ready  /////////////////////
@@ -86,11 +91,54 @@ $( document ).ready(function() {
     function rightbar_setup() {
 
 
-	// facets 
+    // facets 
 
+	// used for select2
 	function format(item) {
 	    return item.text;
 	}
+
+
+	function initSelection(element, callback) {
+
+	    var data = [];
+	    $($('#mytags').val().split(",")).each(function (i) {
+
+
+		var o = findWithAttr(tags, 'id', this);
+
+		if (o) {
+		    data.push({
+			id: o.id,
+			text: o.text
+		    });
+		} else {
+		    console.log("findWithAttr returned none; likely invalid id");
+		}
+	    });
+	    console.log("data = " + JSON.stringify(data));
+	    callback(data);
+	}
+
+
+
+	function createSearchChoice(term, data) {
+	    console.log("create");
+	    if ($(data).filter(function () {
+		return this.text.localeCompare(term) === 0;
+	    }).length === 0) {
+		// call $.post() to add this term to the server, receive back id
+		// return {id:id, text:term}
+		// or detect this shiftiness and do it below in the on-change
+
+		return {
+		    id: -1,
+		    text: term
+		};
+	    }
+	}
+
+
 
 	$('#mytags').select2({
 	    placeholder: 'Search',
@@ -99,113 +147,90 @@ $( document ).ready(function() {
 	    multiple: true,
 	    //tags: tags,
 	    tokenSeparators: [','],
+	    data: { results: tags, text: 'text' },
+	    initSelection: initSelection,
+	    createSearchChoice: createSearchChoice,
+	    formatSelection: format,
+	    formatResult: format
+	});
 
-	    data: {
-		results: tags,
-		text: 'text'
-	    },
-	    initSelection: function (element, callback) {
-
-
-		var data = [];
-		$($('#mytags').val().split(",")).each(function (i) {
-
-
-		    var o = findWithAttr(tags, 'id', this);
-
-		    if (o) {
-			data.push({
-			    id: o.id,
-			    text: o.text
-			});
-		    } else {
-			console.log("findWithAttr returned none; likely invalid id");
-		    }
-		});
-		console.log("data = " + JSON.stringify(data));
-		callback(data);
-	    },
-	    createSearchChoice: function (term, data) {
-		console.log("create");
-		if ($(data).filter(function () {
-		    return this.text.localeCompare(term) === 0;
-		}).length === 0) {
-		    // call $.post() to add this term to the server, receive back id
-		    // return {id:id, text:term}
-		    // or detect this shiftiness and do it below in the on-change
-
-		    return {
-			id: -1,
-			text: term
-		    };
-		}
-	    },
-
+	$('#mystars').select2({
+	    placeholder: 'Search',
+	    allowClear: true,
+	    minimumInputLength: 2,
+	    multiple: true,
+	    //tags: tags,
+	    tokenSeparators: [','],
+	    data: { results: stars, text: 'text' },
+	    initSelection: initSelection,
+	    createSearchChoice: createSearchChoice,
 	    formatSelection: format,
 	    formatResult: format
 	});
 
 
-	$('#mytags').on("change", function (e)  {
-	    console.log("change "+JSON.stringify({val:e.val, added:e.added, removed:e.removed})); 
-	    console.log(e.currentTarget.id);
 
-	    if(e.added){
-		console.log('added: ' + e.added.text + ' id ' + e.added.id)
-		//$.post( "/view/"+e.currentTarget.id+"/tag/add", { tagAdd: e.added.text } );
-		
-		// figure out if tag already exists on server
-		if (e.added.id == -1) {
-		    // tag does not exist on server
-		    var name = e.added.text;
-		    confirm_add(name, function(id) {
-			e.added.id = id; 
-			if (!alter_assoc('add','SceneTag',e.added.id, scene_id)) {
+	$('#mytags,#mystars').each( function () {
+	    $(this).on("change", function (e)  {
+		console.log("change "+JSON.stringify({val:e.val, added:e.added, removed:e.removed})); 
+		console.log('current target id = '+e.currentTarget.id);
+		var target = capitalize(currentTarget.id.replace('my',''));
+		console.log('target = '+target);
+
+		if(e.added){
+		    console.log('added: ' + e.added.text + ' id ' + e.added.id)
+		    
+		    // figure out if tag already exists on server
+		    if (e.added.id == -1) {
+			// tag does not exist on server
+			var name = e.added.text;
+			confirm_add(name, function(id) {
+			    e.added.id = id; 
+			    if (!alter_assoc('add',target,e.added.id, scene_id)) {
+				//failed
+				return false;
+			    }
+			} ); 
+		    } else { //create association
+			if (!alter_assoc('add',target,e.added.id, scene_id)) {
 			    //failed
 			    return false;
 			}
-		    } ); 
-		} else { //create association
-		    if (!alter_assoc('add','SceneTag',e.added.id, scene_id)) {
-			//failed
-			return false;
 		    }
-		}
-	    } else if(e.removed){
-		console.log('removed: ' + e.removed.text + ' id ' + e.removed.id)
-		//$.post( "/view/"+e.currentTarget.id+"/tag/remove", { tagRemove: e.removed.text } );
-		alter_assoc('delete','SceneTag',e.removed.id, scene_id);
+		} else if(e.removed){
+		    console.log('removed: ' + e.removed.text + ' id ' + e.removed.id)
+		    alter_assoc('delete',target,e.removed.id, scene_id);
 
-	    }
+		}
+	    });
 	});
 
 
 
-	function confirm_add(tag, callback) {
-	    console.log('confirm_add for tag '+tag);
+	function confirm_add(facet, name, callback) {
+	    console.log('confirm_add for '+facet+'  '+name);
 	    BootstrapDialog.show({
 		message: ' \
-		    <p>Confirm adding tag: "'+tag+'"</p> \
+		    <p>Confirm adding '+facet+': "'+name+'"</p> \
 		    <p>Aliases: <input type="text" id="myaliases" style="width:60%" /></p> \
 		    <p><small><i>Comma separated; a blank value creates no aliases</small></i></p> \
 		    <script>$("#myaliases").bind("change, paste, keyup",  \
-			function () { aliases = $(this).val(); \
-			console.log("inside onchange, aliases ="+aliases+" this.value = "+$(this).val() ); }); \
+			function () { aliases = $(this).val();  }); \
 		    </script> \
 		',
 		buttons: [{
-		    label: 'Confirm new tag "'+tag+'"',
+		    label: 'Confirm new '+facet+': "'+name+'"',
 		    action: function(dialogItself) { 
 			//var d = {"name":tag};
-			console.log("tag = "+tag);
+			console.log(facet+" = "+name);
 			var d = {};
 			var a = aliases;
 			console.log("a = "+a);
 			//var aliases = $('#aliases').value;
 			d["aliases"] = a;
-			d["name"] = tag;
+			d["name"] = name;
 			console.log("d = "+JSON.stringify(d));
-			ret = add_new('Tag', d, function (id) {
+			ret = add_new(facet, d, function (id) {
 			    dialogItself.close();
 			    callback(id); 
 			});
@@ -242,12 +267,12 @@ $( document ).ready(function() {
 	}
 
 
-	function alter_assoc(action,linktbl,tag,scene) {
-	    console.log("alter_assoc action="+action+" linktbl="+linktbl+" tag="+tag+"   scene="+scene)
-	    var values = {
-	    'scene_id':scene,
-	    'tag_id':tag
-	    };
+	function alter_assoc(action,facet,id,scene) {
+	    console.log("alter_assoc action="+action+" facet="+facet+" id="+id+"   scene="+scene);
+	    linktbl = 'Scene'+facet;
+	    var values = {};
+	    values.push( { key: 'scene_id', value: scene } );
+	    values.push( { key: facet+'_id', value:id } );
 		
 	    $.ajax({
 		type: 'POST',
