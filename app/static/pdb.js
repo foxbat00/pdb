@@ -192,10 +192,14 @@ $( document ).ready(function() {
 			// tag does not exist on server
 			var name = e.added.text;
 			confirm_add(target, name, function(id) {
-			    e.added.id = id; 
-			    if (!alter_assoc('add',target,e.added.id, scene_id)) {
-				//failed
-				return false;
+			    if (id != -1) {
+				e.added.id = id; 
+				if (!alter_assoc('add',target,e.added.id, scene_id)) {
+				    //failed
+				    return false;
+				}
+			    } else { 
+				return false; 
 			    }
 			} ); 
 		    } else { //create association

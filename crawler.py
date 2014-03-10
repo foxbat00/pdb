@@ -110,6 +110,8 @@ def FileLoader(repoq,fileq):
 	# recurse
 	for root, dirs, files in os.walk(rpath,**walkargs):
 	    for f in files:
+		if re.search(r'^\.',f):
+		    continue
 		logger.debug("FileLoader walking to %s/%s" % (root, f))
 		fpart,ext = os.path.splitext(f)
 		fsize = os.path.getsize(modJoin(root,f))
