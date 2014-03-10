@@ -66,7 +66,7 @@ def search_view():
 
 
 
-
+"""
 
 # used to get the tags, stars, etc. for autocomplete
 @app.route('/facet/<facet>', methods=('GET', 'POST'))
@@ -110,7 +110,7 @@ def get_facet(facet):
 	app.logger.debug("headers received:  %s" % request.headers)
 	return redirect('/')
 
-
+"""
 
 
 

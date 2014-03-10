@@ -181,7 +181,11 @@ $( document ).ready(function() {
 	    $(this).on("change", function (e)  {
 		console.log("change "+JSON.stringify({val:e.val, added:e.added, removed:e.removed})); 
 		console.log('current target id = '+e.currentTarget.id);
-		var target = capitalize(e.currentTarget.id.replace('my',''));
+		// TODO FIXME 
+		var x = e.currentTarget.id.replace(/^my/,'');
+		var y = x.replace(/s$/,'');
+		var target = capitalize(y);
+		//var target = e.currentTarget.id.replace('^my(.*)s$', function(v) { return v.capitalize(); });
 		console.log('target = '+target);
 
 		if(e.added){
@@ -281,9 +285,10 @@ $( document ).ready(function() {
 	function alter_assoc(action,facet,id,scene) {
 	    console.log("alter_assoc action="+action+" facet="+facet+" id="+id+"   scene="+scene);
 	    linktbl = 'Scene'+facet;
+	    field = facet.toLowerCase()+'_id';
 	    var values = {};
-	    values.push( { key: 'scene_id', value: scene } );
-	    values.push( { key: facet+'_id', value:id } );
+	    values['scene_id'] = scene ;
+	    values[field] = id ;
 		
 	    $.ajax({
 		type: 'POST',
