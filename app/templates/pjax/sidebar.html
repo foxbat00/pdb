@@ -1,9 +1,10 @@
 {% if scene %}
-    {#<script src="{{ url_for('static',filename='bower_components/bootstrap-rating-input/build/bootstrap-rating-input.min.js') }}" type="text/javascript"></script>#}
     <script>
 	var scene_id = {{scene.id}};
-	{% if facets['alltags'] %} var tags = {{facets['alltags']|safe}}; {% else %} var tags = ''; {% endif %}
-	{% if facets['allstars'] %} var stars = {{facets['allstars']|safe}}; {% else %} var stars = ''; {% endif %}
+	var tags = {{facets['alltags']|safe}}; 
+	var stars = {{facets['allstars']|safe}}; 
+	var series = {{facets['allseries']|safe}}; 
+	var labels = {{facets['alllabels']|safe}}; 
     </script>
     <h3>Scene:</h3>
     {% if deleted %}
@@ -15,7 +16,9 @@
     </form>
     <h4>Rating:</h4> 
     <div id="myrating" data-score="{% if scene.rating %}{{scene.rating}}{%else%}0{%endif%}"> </div>
+
 {#
+"""
 {% for i in range(scene.rating|int) %}
     <span class="glyphicon glyphicon-star"></span>
 {% else %}
@@ -25,12 +28,19 @@
 	Unrated
     {% endif %}
 {%- endfor %}
+"""
 #}
     {% if facets  %}
 	    <h4>Tags:</h4>
 	    <input type='text'  id="mytags" value="{{ facets['thesetags'] }}" style="width:80%" />
 	    <h4>Stars:</h4>
 	    <input type='text'  id="mystars" value="{{ facets['thesestars'] }}" style="width:80%" />
+	    <h4>Series:</h4>
+	    <input type='text'  id="myseries" value="{{ scene.series_id }}" style="width:80%" />
+	    <a href="#" data-pk="{{scene.id}}" data-name="series_number" id="series_number">
+		{{scene.series_number}}</a>
+	    <h4>Label:</h4>
+	    <input type='text'  id="mystars" value="{{ scene.label_id }}" style="width:80%" />
 
     {% endif %}
     

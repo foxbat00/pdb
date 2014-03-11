@@ -102,7 +102,6 @@ $( document ).ready(function() {
 	function initSelection(element, callback) {
 
 	    var data = [];
-	    //$($('#mytags').val().split(",")).each(function (i) {
 	    $($(element).val().split(",")).each(function (i) {
 
 
@@ -111,6 +110,10 @@ $( document ).ready(function() {
 		    o = findWithAttr(tags, 'id', this);
 		} else if ($(element).attr('id') == 'mystars') {
 		    o = findWithAttr(stars, 'id', this);
+		} else if ($(element).attr('id') == 'myseries') {
+		    o = findWithAttr(series, 'id', this);
+		} else if ($(element).attr('id') == 'mylabel') {
+		    o = findWithAttr(labels, 'id', this);
 		}
 		
 
@@ -148,8 +151,7 @@ $( document ).ready(function() {
 
 
 	$('#mytags').select2({
-	    placeholder: 'Search',
-	    allowClear: true,
+	    placeholder: 'Tags',
 	    minimumInputLength: 2,
 	    multiple: true,
 	    //tags: tags,
@@ -162,8 +164,7 @@ $( document ).ready(function() {
 	});
 
 	$('#mystars').select2({
-	    placeholder: 'Search',
-	    allowClear: true,
+	    placeholder: 'Stars',
 	    minimumInputLength: 2,
 	    multiple: true,
 	    //tags: tags,
@@ -176,8 +177,32 @@ $( document ).ready(function() {
 	});
 
 
+	$('#myseries').select2({
+	    minimumInputLength: 2,
+	    multiple: false,
+	    tokenSeparators: [','],
+	    data: { results: series, text: 'text' },
+	    initSelection: initSelection,
+	    createSearchChoice: createSearchChoice,
+	    formatSelection: format,
+	    formatResult: format
+	});
 
-	$('#mytags,#mystars').each( function () {
+
+	$('#mylabel').select2({
+	    minimumInputLength: 2,
+	    multiple: false,
+	    tokenSeparators: [','],
+	    data: { results: labels, text: 'text' },
+	    initSelection: initSelection,
+	    createSearchChoice: createSearchChoice,
+	    formatSelection: format,
+	    formatResult: format
+	});
+
+
+
+	$('#mytags,#mystars,#myseries,#mylabel').each( function () {
 	    $(this).on("change", function (e)  {
 		console.log("change "+JSON.stringify({val:e.val, added:e.added, removed:e.removed})); 
 		console.log('current target id = '+e.currentTarget.id);
@@ -284,19 +309,31 @@ $( document ).ready(function() {
 
 	function alter_assoc(action,facet,id,scene) {
 	    console.log("alter_assoc action="+action+" facet="+facet+" id="+id+"   scene="+scene);
-	    linktbl = 'Scene'+facet;
-	    field = facet.toLowerCase()+'_id';
 	    var values = {};
-	    values['scene_id'] = scene ;
+	    field = facet.toLowerCase()+'_id';
 	    values[field] = id ;
-		
-	    $.ajax({
-		type: 'POST',
-		url: '/json/' +action+ '/' +linktbl+ '/',
-		dataType: 'json',
-		contentType: 'application/json; charset=utf-8',
-		data: JSON.stringify(values)
-	    });
+	    if (facet == 'Tag' || facet == 'Star') {
+		linktbl = 'Scene'+facet;
+		values['scene_id'] = scene;
+		    
+		$.ajax({
+		    type: 'POST',
+		    url: '/json/' +action+ '/' +linktbl+ '/',
+		    dataType: 'json',
+		    contentType: 'application/json; charset=utf-8',
+		    data: JSON.stringify(values)
+		});
+	    } else {
+		values['pk'] = scene;
+		$.ajax({
+		    type: 'POST',
+		    url: '/json/update/scene/',
+		    dataType: 'json',
+		    contentType: 'application/json; charset=utf-8',
+		    data: JSON.stringify(values)
+		});
+
+	    }
 	}
 
 
@@ -324,6 +361,28 @@ $( document ).ready(function() {
 	});
 
 
+	// x-editable for series number
+	$.fn.editable.defaults.mode = 'inline';
+	$('#series_number').editable({
+	    url: '/json/update/Scene/',
+	    inputClass: 'myeditable',
+	    ajaxOptions: {
+		type: 'POST',
+		dataType: 'json',
+		contentType: 'application/json; charset=utf-8'
+	    },
+	    validate: function(value) {
+		if($.trim(value) == '') { return 'This is required.'; }
+		else if(!isNaN(value)) { return 'Numbers only'; }
+	    },
+	    params: function(params) {
+	        return JSON.stringify(params);
+	    },
+	    success: function(response, newValue) {
+	        if(!response.success) return response.msg;
+	    }
+	    //mode: 'inline'
+	});
 
 
 	// rating

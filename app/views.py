@@ -16,6 +16,7 @@ from helpers import *
 
 
 
+
 """
 def getFacetString(taglist):
     tagstring = []
@@ -66,52 +67,6 @@ def search_view():
 
 
 
-"""
-
-# used to get the tags, stars, etc. for autocomplete
-@app.route('/facet/<facet>', methods=('GET', 'POST'))
-def get_facet(facet):
-    if request.is_xhr:
-	app.logger.debug("get facet for facet %s" % facet)
-	
-	tbl = getattr(models, facet.lower().capitalize()) # Tag
-	if not tbl:
-	    app.logger.debug('not found: %s' % facet)
-	    abort()
-
-	if 'searchq' in request.args:
-	    app.logger.debug("search")
-	    search = request.args.get('searchq')
-	    rs = session.query(tbl) \
-		.filter( tbl.name.ilike(search+'%') ) \
-		.limit(10).all()
-	elif 'scene_id' in request.args:
-	    app.logger.debug("scene lookup")
-	    sid = request.args.get('scene_id')
-	    linktbl = getattr(models,'Scene'+tbl.lower().capitalize()) # SceneTag
-	    rs = session.query(tbl) \
-		.join(linktbl, getattr(linktbl,facet.lower()+'_id') == tbl.id) \
-		.filter(linktbl.scene_id == sid).all()
-
-	else:
-	    app.logger.debug('ERROR - nothing in args  recognized')
-	    abort()
-
-
-	if rs:
-	    js = jsonifyList(rs)
-	    app.logger.debug("returning...%d results:\n\n %s" % (len(rs), js))
-	    return js
-	else:
-	    app.logger.debug("no results found, returning ERROR")
-	    return json.dumps('{}') 
-    else:
-	app.logger.debug("no XHR header")
-	app.logger.debug("headers received:  %s" % request.headers)
-	return redirect('/')
-
-"""
-
 
 
 # used by both the sidebar to get scene details and by sidebar ajax for getting things (to see if they exist mainly)
@@ -129,6 +84,11 @@ def get_jax(thing, id):
 	    if thing == 'scene':    
 		deleted = o.isDeleted()
 		facets = {}
+		for fac in ("Tag", "Star", "Label", "Series"):
+		    factbl = getattr(models, fac)
+		    facets['all'+fac.lower()+'s'] = jsonifyList(session.query(factbl).all())
+
+
 		for fac in ("Tag", "Star"):
 
 		    factbl = getattr(models, fac)
