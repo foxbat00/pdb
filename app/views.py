@@ -149,7 +149,7 @@ def get_jax(thing, id):
 
 		    facets['these'+fac.lower()+'s'] = ','.join(str(x.id) for x in taglist)
 
-		app.logger.debug("facets = %s", facets)
+		#app.logger.debug("facets = %s", facets)
 		return render_template('pjax/sidebar.html',  \
 		    scene=o, deleted=deleted, file_insts=file_insts, facets=facets)
 
