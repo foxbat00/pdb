@@ -38,9 +38,11 @@ def to_json(inst, cls):
     convert = dict()
     # add your coversions for things like datetime's 
     # and what-not that aren't serializable.
-    convert['INTERGER()'] = lambda x: int(x)
+    convert['INTEGER()'] = lambda x: int(x)
+    convert['INTEGER'] = lambda x: int(x)
     convert['VARCHAR()'] = lambda x: str(x)
     convert['TEXT()'] = lambda x: str(x)
+    convert['TEXT'] = lambda x: str(x)
     convert['DATE()'] = lambda x: str(x)
     convert['BOOLEAN()'] = lambda x: bool(x)
 
@@ -51,17 +53,18 @@ def to_json(inst, cls):
 	ctype = str(c.type)
 	if re.search(r'^VARCHAR',ctype): # convert varchars so we don't have to define a lambda for each
 	    ctype = 'VARCHAR()'
-        if ctype in convert.keys() and v is not None:
+        if ctype in convert.keys() and v:
             try:
 		n = c.name
-		if n== 'name':
+		if n == 'name':
 		    n = 'text'
                 d[n] = convert[ctype](v)
             except:
                 d[c.name] = "Error:  Failed to covert using ", str(convert[ctype])
-        elif v is None:
+        elif not v:
             d[c.name] = str()
         else:
+	    print "could not convert field for ctype %s and v %s " % (ctype, v)
             d[c.name] = v
     return json.dumps(d)
 
@@ -70,7 +73,7 @@ def jsonifyList(lst):
     if not lst:
 	return json.dumps('')
     if re.search(r'KeyedTuple',str(type(lst[0]))):
-	app.logger.debug('ERROR - KeyedTuple passed to jsonifyList')
+	app.logger.error('ERROR - KeyedTuple passed to jsonifyList')
     else:
 	return json.dumps( [json.loads(to_json(l, l.__class__)) for l in lst] )
 

@@ -36,7 +36,7 @@ var aliases;
 
 $( document ).ready(function() {
 
-    console.log("document ready")
+    console.log("document ready");
 
     function rightbar_close() {
 	$('#rightbar-toggle').text("<<");
@@ -48,12 +48,12 @@ $( document ).ready(function() {
 	    "padding-left": "0px",
 	}).css({
 	    "padding-right": "0px"
-	})
+	});
 	$('#button-sidebar').animate({
 	    width: "30px",
 	},400);
 	$('#rightbar-toggle').text("<<");
-    }
+    };
 
 
     function rightbar_open() {
@@ -103,19 +103,23 @@ $( document ).ready(function() {
 
 	    var data = [];
 	    $($(element).val().split(",")).each(function (i) {
+    
+		facet = $(element).attr('id');
 
-
-		var o;
-		if ($(element).attr('id') == 'mytags') {
+		console.log('this = '+this+" facet = "+facet);
+		var o = 'dict not found: '+facet
+		if (facet == 'mytags') {
 		    o = findWithAttr(tags, 'id', this);
-		} else if ($(element).attr('id') == 'mystars') {
+		} else if (facet == 'mystars') {
 		    o = findWithAttr(stars, 'id', this);
-		} else if ($(element).attr('id') == 'myseries') {
+		} else if (facet == 'myseries') {
 		    o = findWithAttr(series, 'id', this);
-		} else if ($(element).attr('id') == 'mylabel') {
+		} else if (facet == 'mylabel') {
 		    o = findWithAttr(labels, 'id', this);
 		}
-		
+	
+		console.log("initSelection");
+		console.log(JSON.stringify(o));
 
 		if (o) {
 		    data.push({
@@ -123,10 +127,10 @@ $( document ).ready(function() {
 			text: o.text
 		    });
 		} else {
-		    console.log("findWithAttr returned none; likely invalid id");
+		    console.log("findWithAttr returned none; likely invalid id -- "+o);
 		}
 	    });
-	    console.log("data = " + JSON.stringify(data));
+	    console.log("data = " + JSON.stringify(data));;
 	    callback(data);
 	}
 
@@ -154,7 +158,6 @@ $( document ).ready(function() {
 	    placeholder: 'Tags',
 	    minimumInputLength: 2,
 	    multiple: true,
-	    //tags: tags,
 	    tokenSeparators: [','],
 	    data: { results: tags, text: 'text' },
 	    initSelection: initSelection,
@@ -167,7 +170,6 @@ $( document ).ready(function() {
 	    placeholder: 'Stars',
 	    minimumInputLength: 2,
 	    multiple: true,
-	    //tags: tags,
 	    tokenSeparators: [','],
 	    data: { results: stars, text: 'text' },
 	    initSelection: initSelection,
@@ -179,7 +181,8 @@ $( document ).ready(function() {
 
 	$('#myseries').select2({
 	    minimumInputLength: 2,
-	    multiple: false,
+	    multiple: true,
+	    maximumSelectionSize: 1,
 	    tokenSeparators: [','],
 	    data: { results: series, text: 'text' },
 	    initSelection: initSelection,
@@ -191,7 +194,9 @@ $( document ).ready(function() {
 
 	$('#mylabel').select2({
 	    minimumInputLength: 2,
-	    multiple: false,
+	    //multiple: false,
+	    multiple: true,
+	    maximumSelectionSize: 1,
 	    tokenSeparators: [','],
 	    data: { results: labels, text: 'text' },
 	    initSelection: initSelection,
@@ -208,7 +213,8 @@ $( document ).ready(function() {
 		console.log('current target id = '+e.currentTarget.id);
 		// TODO FIXME 
 		var x = e.currentTarget.id.replace(/^my/,'');
-		var y = x.replace(/s$/,'');
+		var y;
+		if (x != 'series') { x.replace(/s$/,'');}
 		var target = capitalize(y);
 		//var target = e.currentTarget.id.replace('^my(.*)s$', function(v) { return v.capitalize(); });
 		console.log('target = '+target);
@@ -362,7 +368,6 @@ $( document ).ready(function() {
 
 
 	// x-editable for series number
-	$.fn.editable.defaults.mode = 'inline';
 	$('#series_number').editable({
 	    url: '/json/update/Scene/',
 	    inputClass: 'myeditable',
@@ -381,7 +386,6 @@ $( document ).ready(function() {
 	    success: function(response, newValue) {
 	        if(!response.success) return response.msg;
 	    }
-	    //mode: 'inline'
 	});
 
 

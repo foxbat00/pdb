@@ -84,18 +84,24 @@ def get_jax(thing, id):
 	    if thing == 'scene':    
 		deleted = o.isDeleted()
 		facets = {}
+		# all
 		for fac in ("Tag", "Star", "Label", "Series"):
 		    factbl = getattr(models, fac)
-		    facets['all'+fac.lower()+'s'] = jsonifyList(session.query(factbl).all())
+		    t = 'all'+fac.lower()
+		    if fac != 'Series':
+			t = t+'s'
+		    r =  jsonifyList(session.query(factbl).all())
+		    if r:   
+			facets[t] = r
+		    else:
+			facets[t] = ""
 
 
+		# this for tag and star (label and series are part of scene which gets passed)
 		for fac in ("Tag", "Star"):
 
 		    factbl = getattr(models, fac)
 		    ltbl = getattr(models, 'Scene'+fac)
-
-		    facets['all'+fac.lower()+'s'] = jsonifyList(session.query(factbl).all())
-
 
 		    file_insts = session.query(FileInst).join(File, FileInst.file_id == File.id) \
 			.join(SceneFile, File.id ==SceneFile.file_id) \
@@ -107,9 +113,14 @@ def get_jax(thing, id):
 			.filter(ltbl.scene_id == o.id) \
 			.all()
 
-		    facets['these'+fac.lower()+'s'] = ','.join(str(x.id) for x in taglist)
+		    r = ','.join(str(x.id) for x in taglist)
+		    if r:
+			facets['these'+fac.lower()+'s']  = r
+		    else:
+			facets['these'+fac.lower()+'s']  = ""
+			
 
-		#app.logger.debug("facets = %s", facets)
+		app.logger.debug("facets = %s", facets)
 		return render_template('pjax/sidebar.html',  \
 		    scene=o, deleted=deleted, file_insts=file_insts, facets=facets)
 

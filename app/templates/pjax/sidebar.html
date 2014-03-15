@@ -2,9 +2,9 @@
     <script>
 	var scene_id = {{scene.id}};
 	var tags = {{facets['alltags']|safe}}; 
-	var stars = {{facets['allstars']|safe}}; 
-	var series = {{facets['allseries']|safe}}; 
 	var labels = {{facets['alllabels']|safe}}; 
+	var series = {{facets['allseries']|safe}}; 
+	var stars = {{facets['allstars']|safe}}; 
     </script>
     <h3>Scene:</h3>
     {% if deleted %}
@@ -63,14 +63,3 @@
 {% else %} 
     No scene selected...
 {% endif %}
-{#
-<script>
-(function ($) {
-  $(function () {
-    if ($('input.rating[type=number]').length > 0) {
-      $('input.rating[type=number]').rating();
-    }
-  });
-}(jQuery));
-</script>
-#}
