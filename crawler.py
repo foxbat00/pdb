@@ -463,9 +463,9 @@ if __name__ == '__main__':
     # FileLoaders consume repos from the repoq, scan those repos, and add files to the fileq
     logger.debug("launching FileLoaders")
     for i in range (threadMax if len(rs) > threadMax else len(rs)):
-	t = Thread(target=FileLoader, args=(repoq,fileq))
-	t.daemon = True  # the prog ends when no alive non-daemons are left
-	t.start()
+	thr = Thread(target=FileLoader, args=(repoq,fileq))
+	thr.daemon = True  # the prog ends when no alive non-daemons are left
+	thr.start()
 
     repoq.join() # wait/ensure for everything to be added...
     t.append(datetime.datetime.now())
@@ -484,9 +484,9 @@ if __name__ == '__main__':
     # FileScanners consume files from the fileq, analyzes them,  and add records to the database
     logger.debug("launching FileScanners")
     for i in range (threadMax):
-	t  = Thread(target=FileScanner, args=(fileq,sceneq)) # requires a tuple
-	t.daemon = True  # the prog ends when no alive non-daemons are left
-	t.start()
+	thr  = Thread(target=FileScanner, args=(fileq,sceneq)) # requires a tuple
+	thr.daemon = True  # the prog ends when no alive non-daemons are left
+	thr.start()
 
     fileq.join()
 
@@ -515,9 +515,9 @@ if __name__ == '__main__':
     logger.debug("update qsize = %d" % updateq.qsize())
     if not updateq.empty():
 	for i in range (threadMax):
-	    t = Thread(target=FileUpdater,args=(updateq,))  # requires a tuple
-	    t.daemon = True  # the prog ends when no alive non-daemons are left
-	    t.start()
+	    thr = Thread(target=FileUpdater,args=(updateq,))  # requires a tuple
+	    thr.daemon = True  # the prog ends when no alive non-daemons are left
+	    thr.start()
 
     updateq.join()
 
@@ -539,9 +539,9 @@ if __name__ == '__main__':
 	logger.debug("scene qsize = %d" % updateq.qsize())
 	if not sceneq.empty():
 	    #for i in range (threadMax):
-	    t = Thread(target=SceneUpdater,args=(sceneq,))  # requires a tuple
-	    t.daemon = True  # the prog ends when no alive non-daemons are left
-	    t.start()
+	    thr = Thread(target=SceneUpdater,args=(sceneq,))  # requires a tuple
+	    thr.daemon = True  # the prog ends when no alive non-daemons are left
+	    thr.start()
 
 	sceneq.join()
 
