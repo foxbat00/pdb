@@ -371,8 +371,6 @@ if __name__ == '__main__':
 
     # globals
     logfile = 'logs/log.txt'
-    validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx"
-    , ".m4v", ".mkv", ".mov", ".asf", ".mp4", ".flv", ".3gp",".asf", ".divx" ]
     invalidExts = []
     threadMax = 4
     min_file_size = 80000 # 80k

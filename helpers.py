@@ -9,7 +9,8 @@ import shlex
 
 ####### CRAWLER ########
 
-
+validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx"
+    , ".m4v", ".mkv", ".mov", ".asf", ".mp4", ".flv", ".3gp",".asf", ".divx" ]
  
 # re-join filenames to eliminate . in path
 
@@ -27,7 +28,9 @@ def md5sum(file):
 	    md5.update(chunk)
     return md5.hexdigest()
 
-
+# get recursive directory size
+def get_recursive_size(dir):
+   return size = sum(os.path.getsize(f) for f in os.listdir(dir) if os.path.isfile(f)) 
 
 
 ####### TAGGER  #######
