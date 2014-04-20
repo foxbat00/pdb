@@ -4,7 +4,8 @@ import hashlib
 import os
 import re
 import shlex
-
+import time
+import datetime
 
 
 ####### CRAWLER ########
@@ -28,9 +29,22 @@ def md5sum(file):
 	    md5.update(chunk)
     return md5.hexdigest()
 
-# get recursive directory size
-def get_recursive_size(dir):
-   return size = sum(os.path.getsize(f) for f in os.listdir(dir) if os.path.isfile(f)) 
+# get recursive directory size, and the OLDEST last-mod date in the directory
+def get_recursive_file_data(dir):
+    total_size = 0
+    mtime = os.stat(dir).st_mtime
+    for root, dirs, files in os.walk(dir):
+        for f in files:
+            fp = os.path.join(root, f)
+            total_size += os.path.getsize(fp)
+	    m = os.stat(fp).st_mtime
+	    if m < mtime:
+		mtime = m
+    return (total_size, mtime)
+
+
+# not recursive
+#return sum(os.path.getsize(f) for f in os.listdir(dir) if os.path.isfile(f)) 
 
 
 ####### TAGGER  #######

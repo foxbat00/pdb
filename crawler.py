@@ -22,6 +22,9 @@ from helpers import *
 # tagger for tagging new scenes
 from tagger import makeFacets, getAliasesAndDict, getTbls
 
+# mover for monitoring space and moving files
+import mover
+
 
 """
 @contextmanager
@@ -404,6 +407,8 @@ if __name__ == '__main__':
     parser.add_argument('-x','--exclude', nargs='+', type=int, help='repositories to exclude from crawl, by id')
     parser.add_argument('--no_scenes',  action='store_true', \
 	help='Operate only at the File and FileInst leve - do not create scenes, or apply facets')
+    parser.add_argument('--no_mover',  action='store_true', \
+	help='turn off functionality for monitoring repo freespace and moving files')
     parser.add_argument('--enable_file_inst_move',  action='store_true', \
 	help='When a file_inst has been deleted less than a week ago, reactivate and overwrite rather than' \
 	    + 'create a new record')
@@ -415,11 +420,22 @@ if __name__ == '__main__':
 	for r in args.exclude:
 	    excludeRepos.append(r)
 
+    times = []
 
 
+    if not args.no_mover:
+	t = ["space check & file move operations", datetime.datetime.now()] 
+	logger.info("#### starting %s at %s ####" % (t[0], t[1]))
+	source_repo = config.BaseConfiguration.MONITOR_REPO
+	dest_repo = config.BaseConfiguration.DEST_REPO
+	mover.spaceCheck(source_repo, dest_repo)
+	t.append(datetime.datetime.now())
+	logger.info("#### completing  %s at %s ####" % (t[0], t[2]))
+	times.append(t)
 
-    start_time = datetime.datetime.now()
-    logger.info("##### starting new file crawl at %s" % start_time)
+
+    t = ["new file crawl - loading", datetime.datetime.now()] 
+    logger.info("#### starting %s at %s ####" % (t[0], t[1]))
 
 
 
@@ -452,13 +468,16 @@ if __name__ == '__main__':
 	t.start()
 
     repoq.join() # wait/ensure for everything to be added...
-    load_done = datetime.datetime.now() - start_time
-    logger.info(" --done enqueuing files (FileLoaders)-- complete %s after start" % load_done)
+    t.append(datetime.datetime.now())
+    logger.info("#### completing  %s at %s ####" % (t[0], t[2]))
+    times.append(t)
 
 
 
 
 
+    t = ["new file crawl - scanning", datetime.datetime.now()]
+    logger.info("#### starting %s at %s ####" % (t[0], t[1]))
 
     logger.debug(" the queue for FileScanners is %d" % fileq.qsize())
 
@@ -471,8 +490,9 @@ if __name__ == '__main__':
 
     fileq.join()
 
-    scan_done = datetime.datetime.now() - start_time
-    logger.info("###### crawl for new files -- complete %s after start #######" % scan_done)
+    t.append(datetime.datetime.now())
+    logger.info("#### completing  %s at %s ####" % (t[0], t[2]))
+    times.append(t)
 
 
 
@@ -482,6 +502,8 @@ if __name__ == '__main__':
 
 
     # update:   check file_instances that we haven't seen since we started the crawl
+    t = ["new file crawl - updating", datetime.datetime.now()]
+    logger.info("#### starting %s at %s ####" % (t[0], t[1]))
     for q in session.query(FileInst,Repository).join(Repository).filter(FileInst.deleted_on == None)\
 	    .filter(FileInst.last_seen < start_time).yield_per(300):
 	(fi,r) = q
@@ -499,8 +521,9 @@ if __name__ == '__main__':
 
     updateq.join()
 
-    update_done = datetime.datetime.now() - start_time
-    logger.info(" -- update done for files not seen recently -- ")
+    t.append(datetime.datetime.now())
+    logger.info("#### completing  %s at %s ####" % (t[0], t[2]))
+    times.append(t)
 
 
 
@@ -509,6 +532,8 @@ if __name__ == '__main__':
 
 
     # make scenes and tags
+    t = ["new file crawl - tagging", datetime.datetime.now()] 
+    logger.info("#### starting %s at %s ####" % (t[0], t[1]))
     if not args.no_scenes:
 	logger.info(" -- starting scene-level operations- ")
 	logger.debug("scene qsize = %d" % updateq.qsize())
@@ -520,22 +545,18 @@ if __name__ == '__main__':
 
 	sceneq.join()
 
-    scene_done = datetime.datetime.now() - start_time
-    logger.info(" -- scenes/tags  done -- ")
+    t.append(datetime.datetime.now())
+    logger.info("#### completing  %s at %s ####" % (t[0], t[2]))
+    times.append(t)
 
 
 
 
     logger.info("####################################################")
-    logger.info(" loading:  %s" % load_done)
-    logger.info(" scanning:  %s" % (scan_done - load_done))
-    logger.info(" updating: %s" % (update_done - scan_done))
-    logger.info(" scenes/tags: %s" % (scene_done - update_done))
-    logger.info(" total:  %s"  % scene_done)
-
-
-
-
-
-
+    total = 0
+    for t in times:
+	x = t[2]-t[1]
+	logger.info( "Phase: %s \t\t\t %s" % (x) )
+	total = total + x
+    logger.info("Total time: %s" % total)
 

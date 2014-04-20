@@ -12,3 +12,7 @@ class BaseConfiguration(object):
 
     DB_URI = 'postgresql://tgpl@localhost:5432/pdb'
 
+
+    MONITOR_REPO = 10
+    DEST_REPO = 8
+
