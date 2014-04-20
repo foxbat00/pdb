@@ -235,7 +235,7 @@ def FileScanner (fileq,sceneq):
 
 	    # get corresponding file_insts
 	    fis = session.query(FileInst,Repository).join(Repository).filter(FileInst.file_id == existing.id).all()
-	    logger.debug("   found file and %d existing instances" % int(len(fis)/2) )
+	    logger.debug("   found file and %d existing instances" % len(fis))
 
 
 	    # scan for deleted, mark as seen the rest
