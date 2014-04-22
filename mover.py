@@ -3,12 +3,12 @@ from sqlalchemy import *
 import sqlalchemy.dialects as postgres
 from sqlalchemy.orm import scoped_session, sessionmaker
 import datetime
-import dateutil.parser as dup
 import re, sys, os
-from Queue import Queue
 import logging 
 import time
+
 from  hurry.filesize import size as hurrysize
+import shutil
 
 
 
@@ -27,7 +27,7 @@ space_threshold = space_threshold * b2g
 move_threshold = 15  # move at least this amount of data in each move
 move_threshold = move_threshold * b2g
 
-bDebug = True
+bDebug = False
 
 
 logfile = 'logs/mover-log.txt'
@@ -87,7 +87,6 @@ def spaceCheck(source_repo, dest_repo):
 	logger.debug('move undertaken, move threshold is set at  %s' % (hurrysize(move_threshold))  )
 	
 	# prepare to move
-	fileq = Queue()
 	destr = session.query(Repository).get(dest_repo)
 
 
@@ -169,10 +168,9 @@ def spaceCheck(source_repo, dest_repo):
 
 	    if os.path.isfile(f):
 		filename = os.path.split(relpath)[-1]
-		d = dest_path
 		#p = os.path.split(relpath)[:-1][0]
 		#logger.debug('FILE: f = %s; filename = %s; d = %s, s = %s' % (f,filename, d, s) )
-		adjustFileInst(sourcer,destr,d, filename, s)
+		adjustFileInst(sourcer,destr,dest_path, filename, s)
 	    else: # directory - recursively check files within
 		relpath = os.path.relpath(f,sourcer.path)
 		for root, dirs, files in os.walk(f):
@@ -184,13 +182,13 @@ def spaceCheck(source_repo, dest_repo):
 	    # otherwise, it's not been crawled yet; let's move it and let the crawler find it at the destination
 	    if not bDebug:
 		try:
-		    if not os.path.exists(os.path.join(dest_path,f)):
-			shutil.move(f,dest_path)
-			session.commit()
-		    else:
+		    if os.path.exists(os.path.join(dest_path,os.path.relpath(f,sourcer.path))):
 			logger.error("ERROR: tried to move %s but file with same name already existing at %s" \
 			    % (f,dest_path) )
 			session.rollback()
+		    else:
+			shutil.move(f,dest_path)
+			session.commit()
 		except shutil.Error:
 		    session.rollback()
 		    logger.error("ERROR: file not moved, due to shutil error")

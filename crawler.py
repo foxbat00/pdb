@@ -421,6 +421,7 @@ if __name__ == '__main__':
 	    excludeRepos.append(r)
 
     times = []
+    start_time = datetime.datetime.now()
 
 
     if not args.no_mover:
