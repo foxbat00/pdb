@@ -1,6 +1,6 @@
-#!/Users/tgpl/envs/py27/bin/python
+#!/opt/local/var/py27/bin/python
 
-ALLDIRS = ['/Users/tgpl/envs/py27/lib/python2.7']
+ALLDIRS = ['/opt/local/var/py27/lib/python2.7']
 
 import sys 
 import site 
@@ -26,6 +26,9 @@ sys.path.append('/opt/local/www/pdb')
 #print sys.path
 
 from app import app 
+import werkzeug.contrib.fixers
+
+app = werkzeug.contrib.fixers.CGIRootFix(app)
 
 from flup.server.fcgi import WSGIServer
 if __name__ == '__main__':
