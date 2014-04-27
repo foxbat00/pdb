@@ -22,9 +22,9 @@ max_files = 1000
 folder_name = 'unsorted'
 naming_convention = r'(%s)(\d+)' % folder_name
 b2g = 1024 ** 3
-space_threshold = 25   # move files when less than this amount of freespace is left
+space_threshold = 10   # move files when less than this amount of freespace is left
 space_threshold = space_threshold * b2g
-move_threshold = 30  # move at least this amount of data in each move
+move_threshold = 10  # move at least this amount of data in each move
 move_threshold = move_threshold * b2g
 
 bDebug = True
