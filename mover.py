@@ -22,12 +22,12 @@ max_files = 1000
 folder_name = 'unsorted'
 naming_convention = r'(%s)(\d+)' % folder_name
 b2g = 1024 ** 3
-space_threshold = 10   # move files when less than this amount of freespace is left
+space_threshold = 25   # move files when less than this amount of freespace is left
 space_threshold = space_threshold * b2g
-move_threshold = 15  # move at least this amount of data in each move
+move_threshold = 30  # move at least this amount of data in each move
 move_threshold = move_threshold * b2g
 
-bDebug = False
+bDebug = True
 
 
 logfile = 'logs/mover-log.txt'
@@ -132,7 +132,7 @@ def spaceCheck(source_repo, dest_repo):
 	    if total > move_threshold:
 		break
 	
-	# move
+	# move files/dirs in the top level source directory
 	for n in movelist:
 
 	    (f,s) = n
@@ -143,7 +143,7 @@ def spaceCheck(source_repo, dest_repo):
 	    q = session.query(FileInst)
 	    relpath = os.path.relpath(f,sourcer.path)
 
-	    # accepts source repo, dest repo, destination path relative to repo, filename, filesize
+	    # accepts source repo, dest repo, path relative to source repo (p), filename, filesize (s)
 	    def adjustFileInst(sourcer,destr,p,f,s):
 		#logger.debug("sourcer = %s; destr = %s; p = %s; f = %s; s = %s"  \
 		    #% (sourcer.path, destr.path, p, f, s) )
@@ -158,8 +158,11 @@ def spaceCheck(source_repo, dest_repo):
 		    if existing:
 			logger.debug("  existing found: %s" % existing)
 			existing.repository_id = destr.id
-			existing.path = os.path.relpath(dest_path,destr.path)
+			logger.debug("--- new repo id: %d" % existing.repository_id)
+			existing.path = os.path.join(dest_path, p)
+			logger.debug("--- new path: %s" % existing.path)
 			existing.last_seen = datetime.datetime.now()
+			# no change to filename, since we looked it up by that
 			if not bDebug:
 			    logger.debug("  existing fixed: %s" % existing)
 			else:
