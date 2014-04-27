@@ -21,7 +21,7 @@ for item in list(sys.path):
 sys.path[:0] = new_sys_path 
 
 # make sure my app is in the path too
-sys.path.append('/Users/tgpl/projects/pdb')
+sys.path.append('/opt/local/www/pdb')
 
 from pdb  import app as application
 
