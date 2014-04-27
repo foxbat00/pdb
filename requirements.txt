@@ -7,3 +7,4 @@ Flask-WTF==0.8.4
 Jinja2==2.7.1
 WTForms==1.0.4
 hurry.filesize>=0.9
+flup>=1.0.2

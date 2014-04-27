@@ -23,7 +23,9 @@ sys.path[:0] = new_sys_path
 # make sure my app is in the path too
 sys.path.append('/opt/local/www/pdb')
 
-from pdb  import app as application
+#print sys.path
+
+from app import app 
 
 from flup.server.fcgi import WSGIServer
 if __name__ == '__main__':
