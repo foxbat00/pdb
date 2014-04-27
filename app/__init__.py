@@ -149,3 +149,7 @@ if app.config.get("ERROR_LOG_PATH"):
 
     file_handler.addFormatter(file_formatter)
     app.logger.addHandler(file_handler)
+
+
+if __name__ == "__main__":
+    app.run()
