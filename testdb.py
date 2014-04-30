@@ -14,6 +14,7 @@ from db import *
 import models
 from models import *
 from helpers import *
+from mover import spaceCheck
 
 import shlex
 

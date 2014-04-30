@@ -27,9 +27,10 @@ space_threshold = space_threshold * b2g
 move_threshold = 10  # move at least this amount of data in each move
 move_threshold = move_threshold * b2g
 
-bDebug = True
+# simulate moving, but don't actually move or write to DB
+bDebug = False
 
-
+# logging
 logfile = 'logs/mover-log.txt'
 format = "%(levelname)s (%(threadName)s): %(message)s"
 logging.basicConfig(level=logging.DEBUG, format=format)
@@ -158,9 +159,9 @@ def spaceCheck(source_repo, dest_repo):
 		    if existing:
 			logger.debug("  existing found: %s" % existing)
 			existing.repository_id = destr.id
-			logger.debug("--- new repo id: %d" % existing.repository_id)
+			#logger.debug("--- new repo id: %d" % existing.repository_id)
 			existing.path = os.path.join(dest_path, p)
-			logger.debug("--- new path: %s" % existing.path)
+			#logger.debug("--- new path: %s" % existing.path)
 			existing.last_seen = datetime.datetime.now()
 			# no change to filename, since we looked it up by that
 			if not bDebug:

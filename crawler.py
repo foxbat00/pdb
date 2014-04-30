@@ -375,7 +375,7 @@ if __name__ == '__main__':
     # globals
     logfile = 'logs/log.txt'
     invalidExts = []
-    threadMax = 4
+    threadMax = 2
     min_file_size = 80000 # 80k
 
 
