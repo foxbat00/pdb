@@ -557,7 +557,7 @@ if __name__ == '__main__':
     total = 0
     for t in times:
 	x = t[2]-t[1]
-	logger.info( "Phase: %s \t\t\t %s" % (x) )
+	logger.info( "Phase: %s \t\t\t %s" % (t[0],x) )
 	total = total + x
     logger.info("Total time: %s" % total)
 
