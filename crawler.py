@@ -554,7 +554,7 @@ if __name__ == '__main__':
 
 
     logger.info("####################################################")
-    total = 0
+    total = datetime.timedelta(0)
     for t in times:
 	x = t[2]-t[1]
 	logger.info( "Phase: %s \t\t\t %s" % (t[0],x) )
