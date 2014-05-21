@@ -72,17 +72,6 @@ class UpdateFile():
 
 
 
-def validFile(fname, ext):
-    if ext.lower() not in validExts:
-	#logger.debug("file extension not valid: %s #%s#")
-	return False
-    if re.search(r'^\.',fname):
-	#logger.debug("ignoring dotfile: %s #%s#")
-	return False
-    return True
-    
-
-
 
 #############################################################
 #
@@ -116,9 +105,8 @@ def FileLoader(repoq,fileq):
 		if re.search(r'^\.',f):
 		    continue
 		logger.debug("FileLoader walking to %s/%s" % (root, f))
-		fpart,ext = os.path.splitext(f)
 		fsize = os.path.getsize(modJoin(root,f))
-		if not validFile(fpart,ext):
+		if not validFile(f):
 		    continue
 		sf = ScanFile(r.id, os.path.relpath(root,rpath), f, fsize)
 		#logger.debug("adding %s to fileq" % sf)

@@ -12,7 +12,18 @@ import datetime
 
 validExts = [".rm", ".avi", ".mpeg", ".mpg", ".divx", ".vob", ".wmv", ".ivx", ".3ivx"
     , ".m4v", ".mkv", ".mov", ".asf", ".mp4", ".flv", ".3gp",".asf", ".divx" ]
- 
+
+
+def validFile(fname):
+    fpart,ext = os.path.splitext(fname)
+    if ext.lower() not in validExts:
+        return False
+    if re.search(r'^\.',fpart):
+        return False
+    return True
+
+
+
 # re-join filenames to eliminate . in path
 
 def modJoin(*paths):
@@ -33,14 +44,19 @@ def md5sum(file):
 def get_recursive_file_data(dir):
     total_size = 0
     mtime = os.stat(dir).st_mtime
+    has_playable = False
     for root, dirs, files in os.walk(dir):
         for f in files:
             fp = os.path.join(root, f)
-            total_size += os.path.getsize(fp)
+            fsize = os.path.getsize(fp)
+            total_size += fsize
 	    m = os.stat(fp).st_mtime
+	    if validFile(f) and fsize > 0:
+		has_playable = True
+	    # TODO consider indenting the below to only return oldest playable mtime
 	    if m < mtime:
 		mtime = m
-    return (total_size, mtime)
+    return (total_size, mtime, has_playable)
 
 
 # not recursive

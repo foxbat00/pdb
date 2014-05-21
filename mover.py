@@ -52,12 +52,18 @@ def get_recent_files(sourcer):
 	entry = [fullpath,a.st_mtime,a.st_ctime] #[file,last_modified,created]
 
 	if os.path.isfile(fullpath):
-	    entry.append(os.path.getsize(fullpath))
+	    if  os.path.getsize(fullpath) > 0:
+		entry.append(os.path.getsize(fullpath))
+	    else:
+		logger.debug("Skipping size-zero file: %s" % fullpath)
 	elif os.path.isdir(fullpath):
-	    (size, mt) = get_recursive_file_data(fullpath)
-	    entry.append(size)
-	    if mt < entry[1]:
-		entry[1] = mt
+	    (size, mt, has_playable) = get_recursive_file_data(fullpath)
+	    if has_playable:
+		entry.append(size)
+		if mt < entry[1]:
+		    entry[1] = mt
+	    else:
+		logger.debug("Skipping size-zero folder: %s" % fullpath)
 	else:
 	    continue
 	if len(entry) != 4:
@@ -93,8 +99,6 @@ def spaceCheck(source_repo, dest_repo):
 
 	# figure out which unsorted directory is current, and if it needs changing
 	def getDestPath(repo):
-
-
 	    last = 0
 	    base = ''
 	    file_count = 0
@@ -148,8 +152,7 @@ def spaceCheck(source_repo, dest_repo):
 	    def adjustFileInst(sourcer,destr,p,f,s):
 		#logger.debug("sourcer = %s; destr = %s; p = %s; f = %s; s = %s"  \
 		    #% (sourcer.path, destr.path, p, f, s) )
-		fpart,ext = os.path.splitext(f)
-		if ext.lower() in validExts:
+		if validFile(f):
 		    existing  = q.join(File) \
 			.filter(FileInst.repository_id == sourcer.id) \
 			.filter(FileInst.name == f) \
