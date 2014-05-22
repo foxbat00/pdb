@@ -56,6 +56,7 @@ def get_recent_files(sourcer):
 		entry.append(os.path.getsize(fullpath))
 	    else:
 		logger.debug("Skipping size-zero file: %s" % fullpath)
+		continue
 	elif os.path.isdir(fullpath):
 	    (size, mt, has_playable) = get_recursive_file_data(fullpath)
 	    if has_playable:
@@ -64,6 +65,7 @@ def get_recent_files(sourcer):
 		    entry[1] = mt
 	    else:
 		logger.debug("Skipping size-zero folder: %s" % fullpath)
+		continue
 	else:
 	    continue
 	if len(entry) != 4:
