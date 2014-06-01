@@ -55,7 +55,7 @@ def get_recent_files(sourcer):
 	    if  os.path.getsize(fullpath) > 0:
 		entry.append(os.path.getsize(fullpath))
 	    else:
-		logger.debug("Skipping size-zero file: %s" % fullpath)
+		logger.info("Skipping size-zero file: %s" % fullpath)
 		continue
 	elif os.path.isdir(fullpath):
 	    (size, mt, has_playable) = get_recursive_file_data(fullpath)
@@ -64,12 +64,12 @@ def get_recent_files(sourcer):
 		if mt < entry[1]:
 		    entry[1] = mt
 	    else:
-		logger.debug("Skipping size-zero folder: %s" % fullpath)
+		logger.info("Skipping size-zero folder: %s" % fullpath)
 		continue
 	else:
 	    continue
 	if len(entry) != 4:
-	    logger.debug('!!!!!!!! about to add deficient entry: %s' % entry)
+	    logger.error('!!!!!!!! about to add deficient entry: %s' % entry)
 	filelist.append(entry)
 
     # sort on mod date
@@ -89,11 +89,11 @@ def spaceCheck(source_repo, dest_repo):
     s = os.statvfs(sourcer.path)
     freespace = (s.f_bavail * s.f_frsize) 
 
-    logger.debug('free space available on %s: %s' % (sourcer.path, hurrysize(freespace))   )
-    logger.debug('threshold for moving is  set at  %s' % hurrysize(space_threshold) )
+    logger.info('free space available on %s: %s' % (sourcer.path, hurrysize(freespace))   )
+    logger.info('threshold for moving is  set at  %s' % hurrysize(space_threshold) )
     
     if freespace < space_threshold:
-	logger.debug('move undertaken, move threshold is set at  %s' % (hurrysize(move_threshold))  )
+	logger.info('move undertaken, move threshold is set at  %s' % (hurrysize(move_threshold))  )
 	
 	# prepare to move
 	destr = session.query(Repository).get(dest_repo)
@@ -122,7 +122,7 @@ def spaceCheck(source_repo, dest_repo):
 
 
 	dest_path = getDestPath(destr)
-	logger.debug("destination directory: %s" % dest_path)
+	logger.info("destination directory: %s" % dest_path)
 
 
 
@@ -144,7 +144,7 @@ def spaceCheck(source_repo, dest_repo):
 
 	    (f,s) = n
 
-	    logger.debug( "moving  %s to %s" % (f, dest_path))
+	    logger.info( "moving  %s to %s" % (f, dest_path))
 
 	    # figure out if file exists in db already
 	    q = session.query(FileInst)

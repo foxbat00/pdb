@@ -85,7 +85,7 @@ def FileLoader(repoq,fileq):
     #@threaded
     def load(rid):
 	def scanError(e):
-	    logger.debug("SCAN ERROR !!!!!!!")
+	    logger.error("SCAN ERROR !!!!!!!")
 	    raise e
 
 
@@ -113,11 +113,11 @@ def FileLoader(repoq,fileq):
 		fileq.put(sf)
 	    
 
-    logger.debug("fileLoader running")
+    logger.info("fileLoader running")
     #while not self.repoq.empty():
     while True:
 	rid = repoq.get()
-	logger.debug("loading repo %d" % rid)
+	logger.info("loading repo %d" % rid)
 	load(rid)
 	repoq.task_done()
 
@@ -145,7 +145,7 @@ def FileScanner (fileq,sceneq):
 	# prevent adding files we can't read for whatever reason
 	    # TODO: consider also checking for hash: d41d8cd98f00b204e9800998ecf8427e
 	if fsize <= min_file_size:
-	    logger.debug("====  small file size:   %s size %d " % (fullname, fsize))
+	    info.debug("====  small file size:   %s size %d " % (fullname, fsize))
 	    # when this happens, we need to distinghuish between things like the repo not being
 	    # mounted and simply running across a file of size 0...
 	    ex = session.query(ForgoneFile) \
@@ -267,7 +267,7 @@ def FileScanner (fileq,sceneq):
 	    return
 		    
 			    
-    logger.debug("fileScanner running")
+    logger.info("fileScanner running")
     while True:
 	sf = fileq.get()
 	considerFile(sf)
@@ -292,7 +292,7 @@ def FileUpdater(updateq):
 	session.expunge_all()
 
 
-    logger.debug("fileUpdater running")
+    logger.info("fileUpdater running")
 
     while True:
 	uf = updateq.get()
@@ -336,7 +336,7 @@ def SceneUpdater(sceneq):
 	session.expunge(file)
 
 
-    logger.debug("SceneUpdater running")
+    logger.info("SceneUpdater running")
     session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine)) 
     (aliases, apdict) = getAliasesAndDict(session)
     tbls = getTbls(session)
@@ -385,7 +385,14 @@ if __name__ == '__main__':
     logoutput.setFormatter(logging.Formatter(format))
     logger.addHandler(logoutput)
 
-    #logger.setLevel(logging.INFO)
+    logger.setLevel(logging.INFO)
+    logger.info("==================================================================" )
+    logger.info("==================================================================" )
+    logger.info(" ")
+    logger.info("Crawler initialized  at %s" % datetime.datetime.now() )
+    logger.info(" ")
+    logger.info("==================================================================" )
+    
 
 
     # options parsing
