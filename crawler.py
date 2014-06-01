@@ -145,7 +145,7 @@ def FileScanner (fileq,sceneq):
 	# prevent adding files we can't read for whatever reason
 	    # TODO: consider also checking for hash: d41d8cd98f00b204e9800998ecf8427e
 	if fsize <= min_file_size:
-	    info.debug("====  small file size:   %s size %d " % (fullname, fsize))
+	    logger.info("====  small file size:   %s size %d " % (fullname, fsize))
 	    # when this happens, we need to distinghuish between things like the repo not being
 	    # mounted and simply running across a file of size 0...
 	    ex = session.query(ForgoneFile) \
