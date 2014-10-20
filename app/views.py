@@ -64,6 +64,34 @@ def search_view():
 # rename facetnames 
 # refactor to support autocomplete, integrate with select2 
 
+@app.route('/facet/<facet>/', defaults={'facet':None} methods=('GET','POST') )
+def facet_choice():
+    if not facet:
+	app.logger.debug("no facet specified")
+	return redirect('/')
+    if facet.lower() not in ['tag', 'star', 'label', 'series']:
+	app.logger.debug("illegal facet specified %s" % facet)
+	return redirect('/')
+	
+    if "X-PJAX" not in request.headers:			### PJAX only
+	app.logger.debug("no xjax detected ")
+	### ERROR _ FIXME
+	
+
+    app.logger.debug("in facet_choice for facet %s" % facet)
+
+    f = getattr(models, facet.lower().capitalize())
+    rs = session.query(f).order_by(f.name.asc)
+    results = {}
+    for r is rs:
+	tbl = getattr(models,'Scene'+facet.lower().capitalize()) 
+	results[r] = session.query(count(distinct(tbl.scene_id))) \
+	    .filter(getattr(tbl,facet.lower()+'_id') == r.id)
+    return render_template('pjax/facet_choice.html',  facet=facet, results = results, count = len(rs))
+	
+    
+
+    
 
 
 

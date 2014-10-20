@@ -154,7 +154,7 @@ def FileScanner (fileq,sceneq):
 		.filter(ForgoneFile.path == path) \
 		.first()
 	    if ex:
-		ex.last_seen = datetime.datetime.now()
+		ex.last_seen = datetime.datetime.now().date()
 	    else:
 		new = ForgoneFile(fname, path, repo.id)
 		session.add(new)
@@ -169,7 +169,7 @@ def FileScanner (fileq,sceneq):
 	if q:
 	    (fi,f) = q
 	    logger.debug(" shortcutting")
-	    fi.last_seen = datetime.datetime.now()
+	    fi.last_seen = datetime.datetime.now().date()
 	    fi.deleted_on = None
 	    if not f.display_name:
 		f.display_name = fullname
@@ -210,7 +210,7 @@ def FileScanner (fileq,sceneq):
 	    logger.debug("   existing file matches - id = %d " % existing.id)
 
 	    # mark as crawled
-	    existing.last_crawled = datetime.datetime.now()
+	    existing.last_crawled = datetime.datetime.now().date()
 	    session.flush()
 
 	    # if no display name set, set now
@@ -233,9 +233,9 @@ def FileScanner (fileq,sceneq):
 		    logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
 		    if not os.path.isfile(modJoin(r.path,fi.path,fi.name)):
 			# set delete date
-			fi.deleted_on = datetime.datetime.now()
+			fi.deleted_on = datetime.datetime.now().date()
 		    else:
-			fi.last_seen = datetime.datetime.now()
+			fi.last_seen = datetime.datetime.now().date()
 		    logger.debug("done update")
 		
 
@@ -245,14 +245,14 @@ def FileScanner (fileq,sceneq):
 	    for q in fis:
 		(fi,r) = q
 		d = fi.deleted_on
-		if d and d > datetime.datetime.now() - datetime.timedelta(weeks=1):
+		if d and d > (datetime.datetime.now().date() - datetime.timedelta(weeks=1) ):
 		    if args.enable_file_inst_move and wordmatch(fi.name, mulch(fname)):
 			logger.debug("      reactivating old instance")
 			fi,r = fis
 			fi.name = fname
 			fi.path = path
 			fi.repository_id = repo.id
-			fi.last_seen = datetime.datetime.now()
+			fi.last_seen = datetime.datetime.now().date()
 			deleted_on = None
 			session.commit()
 			session.expunge_all()
@@ -284,9 +284,9 @@ def FileUpdater(updateq):
 	r = session.query(Repository).filter(Repository.id == str(rid)).first()
 	logger.debug("updating %s" % modJoin(r.path,fi.path,fi.name))
 	if not os.path.isfile(modJoin(r.path,fi.path,fi.name)):
-	    fi.deleted_on = datetime.datetime.now()
+	    fi.deleted_on = datetime.datetime.now().date()
 	else:
-	    fi.last_seen = datetime.datetime.now()
+	    fi.last_seen = datetime.datetime.now().date()
 	logger.debug("done update")
 	session.commit()
 	session.expunge_all()
@@ -363,7 +363,7 @@ if __name__ == '__main__':
     # globals
     logfile = 'logs/log.txt'
     invalidExts = []
-    threadMax = 2
+    threadMax = 1
     min_file_size = 80000 # 80k
 
 
@@ -385,7 +385,8 @@ if __name__ == '__main__':
     logoutput.setFormatter(logging.Formatter(format))
     logger.addHandler(logoutput)
 
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
+    #logger.setLevel(logging.INFO)
     logger.info("==================================================================" )
     logger.info("==================================================================" )
     logger.info(" ")
@@ -413,6 +414,7 @@ if __name__ == '__main__':
     excludeRepos = []
     if args.exclude:
 	for r in args.exclude:
+	    logger.info("excluding repository %d" % r)
 	    excludeRepos.append(r)
 
     times = []

@@ -120,8 +120,9 @@ class FileInst(Base):
 
     def __init__(self, name, path, repo_id, file_id):
 	self.name = name
-	self.path = path
 	self.repository_id = repo_id
+	repo_path = session.query(Repository).filter(Repository.id == repo_id).first().path
+	self.path = re.sub(repopath, '', path)
 	self.last_seen = datetime.datetime.now()
 	self.marked_delete = False
 	self.processed = False

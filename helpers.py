@@ -40,7 +40,9 @@ def md5sum(file):
 	    md5.update(chunk)
     return md5.hexdigest()
 
-# get recursive directory size, and the OLDEST last-mod date in the directory
+# get recursive directory size, and the newest mod date of a valid file
+#     idea is that when you rename a file, the directory mod changes, but not the file.
+# (used to be the OLDEST last-mod date in the directory)
 def get_recursive_file_data(dir):
     total_size = 0
     mtime = os.stat(dir).st_mtime
@@ -53,9 +55,8 @@ def get_recursive_file_data(dir):
 	    m = os.stat(fp).st_mtime
 	    if validFile(f) and fsize > 0:
 		has_playable = True
-	    # TODO consider indenting the below to only return oldest playable mtime
-	    if m < mtime:
-		mtime = m
+		if m < mtime:    # if file's mod time is earlier than previous mod time (default to dir mtime)
+		    mtime = m
     return (total_size, mtime, has_playable)
 
 

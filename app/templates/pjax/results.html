@@ -1,9 +1,6 @@
 {% if results %}
     <h3>Results:</h3>
     <p align=right>(<i>{{ count }} found...
-    {% if count > max %}
-	{{ max }} shown
-    {% endif %}
     </i>)</p>
     <table>
     {% for r in results %}
